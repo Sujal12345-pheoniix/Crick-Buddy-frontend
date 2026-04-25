@@ -1,6 +1,10 @@
 import axios from 'axios';
 
-export const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const configuredApiBase = process.env.NEXT_PUBLIC_API_URL?.trim();
+const isLocalFrontend = typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname);
+
+// When running the frontend locally, always hit the local backend to avoid CORS issues with deployed APIs.
+export const API_BASE = isLocalFrontend ? 'http://localhost:5000/api' : (configuredApiBase || 'http://localhost:5000/api');
 
 const api = axios.create({
     baseURL: API_BASE,
