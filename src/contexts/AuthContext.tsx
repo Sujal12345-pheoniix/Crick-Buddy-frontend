@@ -55,7 +55,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(u);
         return u;
     };
-
+    
     const register = async (data: object) => {
         const res = await authAPI.register(data);
         const { token: t, user: u } = res.data;
