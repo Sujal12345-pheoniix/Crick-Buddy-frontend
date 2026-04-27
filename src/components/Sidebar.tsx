@@ -41,8 +41,8 @@ export default function Sidebar() {
         );
     };
 
-    const SidebarContent = () => (
-        <div className="sidebar" style={{ width: mobileOpen ? '100vw' : undefined }}>
+    const SidebarContent = ({ mobile = false }: { mobile?: boolean }) => (
+        <div className={`sidebar ${mobile ? 'sidebar-mobile-open' : ''}`} style={mobile ? { position: 'relative', height: '100%', animation: 'slideInLeft 0.25s ease' } : {}}>
             {/* Logo */}
             <div style={{ padding: '24px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                 <Link href="/dashboard" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '14px' }}>
@@ -126,25 +126,45 @@ export default function Sidebar() {
                 <SidebarContent />
             </div>
 
-            {/* Mobile toggle */}
-            <button
-                className="md:hidden"
-                style={{
-                    position: 'fixed', top: 16, left: 16, zIndex: 200,
-                    background: 'rgba(15,21,39,0.95)', border: '1px solid rgba(0,255,136,0.2)',
-                    borderRadius: 8, padding: '8px', cursor: 'pointer', color: '#fff'
-                }}
-                onClick={() => setMobileOpen(!mobileOpen)}
-            >
-                {mobileOpen ? <X size={20} /> : <Menu size={20} />}
-            </button>
+            {/* Mobile top bar */}
+            <div className="md:hidden" style={{
+                position: 'fixed', top: 0, left: 0, right: 0, zIndex: 120,
+                height: 56, background: 'rgba(15,21,39,0.97)',
+                borderBottom: '1px solid rgba(0,255,136,0.12)',
+                backdropFilter: 'blur(16px)',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '0 16px'
+            }}>
+                <Link href="/dashboard" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{
+                        width: 36, height: 36, borderRadius: 10,
+                        background: 'rgba(255,255,255,0.03)',
+                        border: '1px solid rgba(0,255,136,0.2)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        overflow: 'hidden'
+                    }}>
+                        <img src="/icon.png" alt="Crick Buddy" style={{ width: 30, height: 30, objectFit: 'contain' }} />
+                    </div>
+                    <span style={{ fontSize: 17, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em' }}>Crick-Buddy</span>
+                </Link>
+                <button
+                    style={{
+                        background: 'rgba(0,255,136,0.08)', border: '1px solid rgba(0,255,136,0.2)',
+                        borderRadius: 8, padding: '7px', cursor: 'pointer', color: '#fff',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center'
+                    }}
+                    onClick={() => setMobileOpen(!mobileOpen)}
+                >
+                    {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+                </button>
+            </div>
 
-            {/* Mobile Sidebar */}
+            {/* Mobile Sidebar Drawer */}
             {mobileOpen && (
                 <div style={{ position: 'fixed', inset: 0, zIndex: 150 }}>
-                    <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
+                    <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)' }}
                         onClick={() => setMobileOpen(false)} />
-                    <SidebarContent />
+                    <SidebarContent mobile />
                 </div>
             )}
         </>

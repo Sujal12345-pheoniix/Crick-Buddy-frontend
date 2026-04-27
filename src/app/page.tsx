@@ -1,7 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
-import { Activity, Play, ChevronRight, Zap, Target, BarChart3, MessageCircle, Star, Shield, Users, Award } from 'lucide-react';
+import { Activity, Play, ChevronRight, Zap, Target, BarChart3, MessageCircle, Star, Shield, Users, Award, Menu, X } from 'lucide-react';
 
 const features = [
   {
@@ -49,15 +50,17 @@ const testimonials = [
 ];
 
 export default function LandingPage() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   return (
     <div style={{ background: 'var(--bg-primary)', minHeight: '100vh' }}>
 
       {/* Navbar */}
       <nav style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
-        background: 'rgba(10,14,26,0.9)', backdropFilter: 'blur(20px)',
+        background: 'rgba(10,14,26,0.95)', backdropFilter: 'blur(20px)',
         borderBottom: '1px solid rgba(255,255,255,0.06)',
-        padding: '0 40px', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+        padding: '0 clamp(16px, 4vw, 40px)', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(0,255,136,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
@@ -66,7 +69,9 @@ export default function LandingPage() {
           <span style={{ fontSize: 20, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em' }}>Crick-Buddy</span>
           <span style={{ fontSize: 11, color: '#00ff88', background: 'rgba(0,255,136,0.1)', padding: '2px 8px', borderRadius: 20, fontWeight: 600 }}>AI</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+
+        {/* Desktop nav links */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 24 }} className="hidden md:flex">
           <nav style={{ display: 'flex', gap: 28 }}>
             {['Features', 'Pricing', 'Academy'].map(item => (
               <a key={item} href={`#${item.toLowerCase()}`} style={{ color: 'rgba(255,255,255,0.6)', textDecoration: 'none', fontSize: 14, fontWeight: 500, transition: 'color 0.2s' }}
@@ -80,10 +85,43 @@ export default function LandingPage() {
             Start Free
           </Link>
         </div>
+
+        {/* Mobile hamburger */}
+        <button className="md:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          style={{ background: 'rgba(0,255,136,0.08)', border: '1px solid rgba(0,255,136,0.2)', borderRadius: 8, padding: '7px', cursor: 'pointer', color: '#fff', display: 'flex', alignItems: 'center' }}>
+          {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+        </button>
       </nav>
 
+      {/* Mobile menu dropdown */}
+      {mobileMenuOpen && (
+        <div className="md:hidden" style={{
+          position: 'fixed', top: 64, left: 0, right: 0, zIndex: 99,
+          background: 'rgba(10,14,26,0.98)', borderBottom: '1px solid rgba(255,255,255,0.08)',
+          padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 8,
+          backdropFilter: 'blur(20px)'
+        }}>
+          {['Features', 'Pricing', 'Academy'].map(item => (
+            <a key={item} href={`#${item.toLowerCase()}`} onClick={() => setMobileMenuOpen(false)}
+              style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none', fontSize: 15, fontWeight: 500, padding: '10px 4px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+              {item}
+            </a>
+          ))}
+          <div style={{ display: 'flex', gap: 12, paddingTop: 8 }}>
+            <Link href="/login" onClick={() => setMobileMenuOpen(false)}
+              style={{ flex: 1, textAlign: 'center', padding: '11px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.15)', color: '#fff', textDecoration: 'none', fontSize: 14, fontWeight: 600 }}>
+              Login
+            </Link>
+            <Link href="/register" onClick={() => setMobileMenuOpen(false)} className="btn-primary"
+              style={{ flex: 1, textAlign: 'center', padding: '11px', fontSize: 14, justifyContent: 'center' }}>
+              Start Free
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Hero */}
-      <section style={{ paddingTop: 160, paddingBottom: 100, paddingLeft: 40, paddingRight: 40, maxWidth: 1200, margin: '0 auto', position: 'relative' }}>
+      <section style={{ paddingTop: 160, paddingBottom: 80, paddingLeft: 'clamp(20px, 5vw, 40px)', paddingRight: 'clamp(20px, 5vw, 40px)', maxWidth: 1200, margin: '0 auto', position: 'relative' }}>
         <div className="hero-orb hero-orb-1" />
         <div className="hero-orb hero-orb-2" />
 
@@ -104,10 +142,10 @@ export default function LandingPage() {
         </p>
 
         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-          <Link href="/register" className="btn-primary" style={{ fontSize: 16, padding: '14px 32px' }}>
+          <Link href="/register" className="btn-primary" style={{ fontSize: 'clamp(14px, 2vw, 16px)', padding: '14px 28px' }}>
             Analyze My Game <ChevronRight size={18} />
           </Link>
-          <Link href="/login" className="btn-secondary" style={{ fontSize: 16, padding: '14px 32px' }}>
+          <Link href="/login" className="btn-secondary" style={{ fontSize: 'clamp(14px, 2vw, 16px)', padding: '14px 28px' }}>
             Watch Demo
           </Link>
         </div>
@@ -115,7 +153,7 @@ export default function LandingPage() {
       </section>
 
       {/* Features */}
-      <section id="features" style={{ padding: '100px 40px', maxWidth: 1200, margin: '0 auto' }}>
+      <section id="features" style={{ padding: 'clamp(60px, 8vw, 100px) clamp(20px, 5vw, 40px)', maxWidth: 1200, margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: 64 }}>
           <span style={{ fontSize: 13, fontWeight: 700, color: '#00ff88', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Features</span>
           <h2 style={{ fontSize: 44, fontWeight: 900, marginTop: 8, marginBottom: 16 }}>Everything You Need <br />to Dominate the Pitch</h2>
@@ -124,7 +162,7 @@ export default function LandingPage() {
           </p>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(360px, 100%), 1fr))', gap: 24 }}>
           {features.map(f => (
             <Link key={f.title} href={f.href} style={{ textDecoration: 'none' }}>
               <div className="card" style={{ padding: 24, cursor: 'pointer', transition: 'all 0.25s', height: '100%' }}
@@ -163,10 +201,10 @@ export default function LandingPage() {
       </section>
 
       {/* How it works */}
-      <section style={{ padding: '80px 40px', background: 'rgba(255,255,255,0.02)', borderTop: '1px solid rgba(255,255,255,0.05)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+      <section style={{ padding: 'clamp(60px, 8vw, 80px) clamp(20px, 5vw, 40px)', background: 'rgba(255,255,255,0.02)', borderTop: '1px solid rgba(255,255,255,0.05)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', textAlign: 'center' }}>
-          <h2 style={{ fontSize: 40, fontWeight: 900, marginBottom: 64 }}>How It Works</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 32 }}>
+          <h2 style={{ fontSize: 'clamp(28px, 5vw, 40px)', fontWeight: 900, marginBottom: 48 }}>How It Works</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(200px, 100%), 1fr))', gap: 32 }}>
             {[
               { num: '01', title: 'Upload Video', desc: 'Upload your batting or bowling video (any format)', icon: '📹' },
               { num: '02', title: 'AI Analysis', desc: 'MediaPipe + OpenCV analyze 30 frames per second', icon: '🤖' },
@@ -185,9 +223,9 @@ export default function LandingPage() {
       </section>
 
       {/* Testimonials */}
-      <section style={{ padding: '100px 40px', maxWidth: 1200, margin: '0 auto' }}>
-        <h2 style={{ fontSize: 40, fontWeight: 900, textAlign: 'center', marginBottom: 56 }}>Players Love Crick-Buddy</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
+      <section style={{ padding: 'clamp(60px, 8vw, 100px) clamp(20px, 5vw, 40px)', maxWidth: 1200, margin: '0 auto' }}>
+        <h2 style={{ fontSize: 'clamp(28px, 5vw, 40px)', fontWeight: 900, textAlign: 'center', marginBottom: 48 }}>Players Love Crick-Buddy</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(300px, 100%), 1fr))', gap: 24 }}>
           {testimonials.map(t => (
             <div key={t.name} className="card" style={{ padding: 24 }}>
               <div style={{ display: 'flex', marginBottom: 12 }}>
@@ -206,11 +244,11 @@ export default function LandingPage() {
       </section>
 
       {/* Pricing */}
-      <section id="pricing" style={{ padding: '100px 40px', background: 'rgba(255,255,255,0.02)', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+      <section id="pricing" style={{ padding: 'clamp(60px, 8vw, 100px) clamp(20px, 5vw, 40px)', background: 'rgba(255,255,255,0.02)', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
         <div style={{ maxWidth: 1000, margin: '0 auto', textAlign: 'center' }}>
-          <h2 style={{ fontSize: 40, fontWeight: 900, marginBottom: 16 }}>Simple, Fair Pricing</h2>
-          <p style={{ color: 'rgba(255,255,255,0.5)', marginBottom: 56, fontSize: 17 }}>Start free. Scale as you grow.</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
+          <h2 style={{ fontSize: 'clamp(28px, 5vw, 40px)', fontWeight: 900, marginBottom: 16 }}>Simple, Fair Pricing</h2>
+          <p style={{ color: 'rgba(255,255,255,0.5)', marginBottom: 48, fontSize: 17 }}>Start free. Scale as you grow.</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(280px, 100%), 1fr))', gap: 24 }}>
             {[
               { name: 'Starter', price: 'Free', period: 'forever', features: ['5 video analyses/mo', 'Basic batting & bowling', 'AI Coach Chat', 'Progress tracking'], cta: 'Get Started', highlight: false },
               { name: 'Pro', price: '₹799', period: '/month', features: ['Unlimited analyses', 'Advanced metrics', 'Shot classification', 'Priority processing', 'PDF reports', 'Equipment recommendations'], cta: 'Start Pro', highlight: true },
@@ -252,7 +290,7 @@ export default function LandingPage() {
       </section>
 
       {/* CTA */}
-      <section style={{ padding: '100px 40px', textAlign: 'center' }}>
+      <section style={{ padding: 'clamp(60px, 8vw, 100px) clamp(20px, 5vw, 40px)', textAlign: 'center' }}>
         <div style={{ maxWidth: 700, margin: '0 auto' }}>
           <Award size={48} color="#00ff88" style={{ marginBottom: 24, display: 'block', margin: '0 auto 24px' }} />
           <h2 style={{ fontSize: 44, fontWeight: 900, marginBottom: 20 }}>Ready to Transform Your Cricket?</h2>

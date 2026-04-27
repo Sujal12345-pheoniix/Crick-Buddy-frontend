@@ -51,26 +51,26 @@ export default function DashboardPage() {
     return (
         <div style={{ display: 'flex' }}>
             <Sidebar />
-            <main className="main-content" style={{ padding: '32px 40px' }}>
+            <main className="main-content" style={{ padding: 'clamp(16px, 4vw, 32px) clamp(16px, 4vw, 40px)' }}>
                 {/* Header */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
-                    <div>
-                        <h1 style={{ fontSize: 28, fontWeight: 800, marginBottom: 6 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
+                    <div style={{ minWidth: 0 }}>
+                        <h1 style={{ fontSize: 'clamp(20px, 4vw, 28px)', fontWeight: 800, marginBottom: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             Welcome back, {user.name.split(' ')[0]}! 🏏
                         </h1>
-                        <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 15 }}>
+                        <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 'clamp(12px, 2vw, 15px)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {user.playerType} · {user.experienceLevel} · {user.battingStyle}
                         </p>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
                         <div style={{
                             position: 'relative',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            width: 56,
-                            height: 56,
-                            borderRadius: 16,
+                            width: 48,
+                            height: 48,
+                            borderRadius: 14,
                             background: 'linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.01))',
                             backdropFilter: 'blur(10px)',
                             border: '1px solid rgba(255,255,255,0.1)',
@@ -88,17 +88,17 @@ export default function DashboardPage() {
                                 borderRadius: 'inherit',
                                 animation: 'pulse 3s infinite alternate'
                             }} />
-                            <img src="/icon.png" alt="Crick Buddy Logo" style={{ width: 36, height: 36, objectFit: 'contain', filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.4))' }} />
+                            <img src="/icon.png" alt="Crick Buddy Logo" style={{ width: 32, height: 32, objectFit: 'contain', filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.4))' }} />
                         </div>
-                        <Link href="/upload" className="btn-primary" style={{ padding: '12px 24px', fontSize: 15, fontWeight: 600 }}>
-                            <Upload size={18} />
+                        <Link href="/upload" className="btn-primary" style={{ padding: '10px 18px', fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap' }}>
+                            <Upload size={16} />
                             New Analysis
                         </Link>
                     </div>
                 </div>
 
                 {/* Quick stats */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 32 }}>
+                <div className="dash-stats-grid">
                     <div className="card" style={{ padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 16 }}>
                         <div style={{ width: 48, height: 48, borderRadius: 12, background: 'rgba(0,255,136,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <Upload size={22} color="#00ff88" />
@@ -138,7 +138,7 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Latest report + recent uploads */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 32 }}>
+                <div className="dash-main-grid">
                     {/* Latest Report */}
                     <div className="card" style={{ padding: 24 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
@@ -219,7 +219,7 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Quick action cards */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+                <div className="dash-actions-grid">
                     {[
                         { href: '/chatbot', icon: '💬', title: 'Ask AI Coach', desc: 'Get instant cricket advice', color: '#00ff88' },
                         { href: '/training', icon: '🏋️', title: 'Training Drills', desc: 'Suggested exercises for you', color: '#3b82f6' },

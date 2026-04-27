@@ -130,18 +130,18 @@ export default function RegisterPage() {
                     <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14, marginTop: 8 }}>Create your free account</p>
                 </div>
 
-                <div className="card" style={{ padding: 40 }}>
+                <div className="card" style={{ padding: 'clamp(24px, 5vw, 40px)' }}>
                     <h1 style={{ fontSize: 22, fontWeight: 800, marginBottom: 28, textAlign: 'center' }}>Join Crick-Buddy 🏏</h1>
 
                     <form onSubmit={handleSubmit}>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(200px, 100%), 1fr))', gap: 12 }}>
                             <div style={{ gridColumn: '1 / -1' }}><Field label="Full Name" name="name" placeholder="Virat Sharma" /></div>
                             <div style={{ gridColumn: '1 / -1' }}><Field label="Email" name="email" type="email" placeholder="you@example.com" /></div>
                             <Field label="Password" name="password" type="password" placeholder="Min 6 chars" />
                             <Field label="Confirm Password" name="confirmPassword" type="password" placeholder="Repeat password" />
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 4 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(200px, 100%), 1fr))', gap: 12, marginTop: 4 }}>
                             <Select label="I Am A" name="role" options={[
                                 { value: 'player', label: '🏏 Player' },
                                 { value: 'coach', label: '📋 Coach' }
