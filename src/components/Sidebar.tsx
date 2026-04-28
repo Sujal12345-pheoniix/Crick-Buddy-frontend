@@ -1,28 +1,28 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import {
     LayoutDashboard, Upload, BarChart3, Dumbbell, ShoppingBag,
-    MessageCircle, Users, Trophy, Settings, LogOut, Menu, X,
-    Activity, ChevronRight, Shield
+    MessageCircle, Trophy, Settings, LogOut, Menu, X,
+    Shield, ChevronRight, Star, Zap
 } from 'lucide-react';
 
 const navItems = [
-    { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { href: '/upload', icon: Upload, label: 'Upload & Analyze' },
-    { href: '/progress', icon: BarChart3, label: 'Progress' },
-    { href: '/events', icon: Trophy, label: 'Live & Tournaments' },
-    { href: '/training', icon: Dumbbell, label: 'Training' },
-    { href: '/equipment', icon: ShoppingBag, label: 'Equipment' },
-    { href: '/chatbot', icon: MessageCircle, label: 'AI Coach Chat' },
-    { href: '/leaderboard', icon: Trophy, label: 'Leaderboard' },
+    { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', color: '#22c55e' },
+    { href: '/upload',    icon: Upload,          label: 'Upload & Analyze', color: '#6366f1' },
+    { href: '/progress',  icon: BarChart3,        label: 'Progress',   color: '#f97316' },
+    { href: '/events',    icon: Trophy,           label: 'Live & Tournaments', color: '#eab308' },
+    { href: '/training',  icon: Dumbbell,         label: 'Training Drills', color: '#14b8a6' },
+    { href: '/equipment', icon: ShoppingBag,      label: 'Equipment',  color: '#ec4899' },
+    { href: '/chatbot',   icon: MessageCircle,    label: 'AI Coach',   color: '#22c55e' },
+    { href: '/leaderboard', icon: Trophy,         label: 'Leaderboard', color: '#eab308' },
 ];
 
 const coachItems = [
-    { href: '/academy', icon: Users, label: 'Academy Mode' },
+    { href: '/academy', icon: Star, label: 'Academy Mode', color: '#f97316' },
 ];
 
 export default function Sidebar() {
@@ -30,143 +30,197 @@ export default function Sidebar() {
     const { user, logout } = useAuth();
     const [mobileOpen, setMobileOpen] = useState(false);
 
-    const NavLink = ({ href, icon: Icon, label }: { href: string; icon: any; label: string }) => {
-        const isActive = pathname.startsWith(href);
+    // Close drawer on route change
+    useEffect(() => { setMobileOpen(false); }, [pathname]);
+
+    // Prevent body scroll when mobile drawer is open
+    useEffect(() => {
+        document.body.style.overflow = mobileOpen ? 'hidden' : '';
+        return () => { document.body.style.overflow = ''; };
+    }, [mobileOpen]);
+
+    const NavLink = ({ href, icon: Icon, label, color }: { href: string; icon: any; label: string; color: string }) => {
+        const isActive = pathname === href || (href !== '/dashboard' && pathname.startsWith(href));
         return (
-            <Link href={href} className={`sidebar-link ${isActive ? 'active' : ''}`} onClick={() => setMobileOpen(false)}>
-                <Icon size={18} />
-                <span>{label}</span>
-                {isActive && <ChevronRight size={14} className="ml-auto" />}
+            <Link
+                href={href}
+                className={`sidebar-link ${isActive ? 'active' : ''}`}
+                style={isActive ? { color } : {}}
+                onClick={() => setMobileOpen(false)}
+            >
+                <Icon size={17} style={{ color: isActive ? color : undefined }} />
+                <span style={{ flex: 1 }}>{label}</span>
+                {isActive && <ChevronRight size={13} style={{ opacity: 0.6 }} />}
             </Link>
         );
     };
 
-    const SidebarContent = ({ mobile = false }: { mobile?: boolean }) => (
-        <div className={`sidebar ${mobile ? 'sidebar-mobile-open' : ''}`} style={mobile ? { position: 'relative', height: '100%', animation: 'slideInLeft 0.25s ease' } : {}}>
+    const levelColors: Record<string, string> = {
+        beginner: '#22c55e',
+        intermediate: '#6366f1',
+        professional: '#eab308',
+    };
+    const levelColor = levelColors[user?.experienceLevel || 'beginner'] || '#22c55e';
+
+    const SidebarContent = () => (
+        <aside className="sidebar" style={{ width: 'var(--sidebar-width)' }}>
             {/* Logo */}
-            <div style={{ padding: '24px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                <Link href="/dashboard" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div style={{ padding: '18px 16px 14px', borderBottom: '1px solid var(--border)' }}>
+                <Link href="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none' }}>
                     <div style={{
-                        width: 48, height: 48, borderRadius: 12,
-                        background: 'rgba(255,255,255,0.03)',
-                        border: '1px solid rgba(0,255,136,0.2)',
-                        boxShadow: '0 4px 16px rgba(0,255,136,0.15)',
+                        width: 42, height: 42, borderRadius: 12,
+                        background: 'rgba(34,197,94,0.1)',
+                        border: '1px solid rgba(34,197,94,0.25)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        overflow: 'hidden'
+                        overflow: 'hidden', flexShrink: 0,
+                        boxShadow: '0 4px 16px rgba(34,197,94,0.12)'
                     }}>
-                        <img src="/icon.png" alt="Crick Buddy Logo" style={{ width: 40, height: 40, objectFit: 'contain' }} />
+                        <img src="/icon.png" alt="Crick Buddy" style={{ width: 36, height: 36, objectFit: 'contain' }} />
                     </div>
                     <div>
-                        <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', lineHeight: 1.2, letterSpacing: '-0.02em' }}>Crick-Buddy</div>
-                        <div style={{ fontSize: 12, color: '#00ff88', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', marginTop: 2 }}>Cricket AI</div>
+                        <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.2, letterSpacing: '-0.01em' }}>
+                            Crick-Buddy
+                        </div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-green)', letterSpacing: '0.06em', textTransform: 'uppercase', marginTop: 1 }}>
+                            AI Platform
+                        </div>
                     </div>
                 </Link>
             </div>
 
-            {/* Nav Links */}
-            <nav style={{ flex: 1, padding: '12px 0', overflowY: 'auto' }}>
-                <div style={{ padding: '8px 16px 4px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                    Main Menu
+            {/* User XP card */}
+            {user && (
+                <div style={{ padding: '12px 12px 10px', borderBottom: '1px solid var(--border)' }}>
+                    <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 10, padding: '10px 12px', border: '1px solid var(--border)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                            <div style={{
+                                width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
+                                background: `linear-gradient(135deg, ${levelColor}, ${levelColor}88)`,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                fontWeight: 800, fontSize: 13, color: '#0a0e1a'
+                            }}>
+                                {user.name?.charAt(0).toUpperCase()}
+                            </div>
+                            <div style={{ minWidth: 0 }}>
+                                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    {user.name}
+                                </div>
+                                <div style={{ fontSize: 11, color: levelColor, fontWeight: 600, textTransform: 'capitalize' }}>
+                                    {user.experienceLevel || 'Beginner'}
+                                </div>
+                            </div>
+                            <Zap size={14} style={{ color: '#eab308', flexShrink: 0, marginLeft: 'auto' }} />
+                        </div>
+                        {/* XP bar */}
+                        <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 4, display: 'flex', justifyContent: 'space-between' }}>
+                            <span>XP Progress</span>
+                            <span style={{ color: levelColor }}>{user.totalUploads || 0} analyses</span>
+                        </div>
+                        <div className="xp-bar-container">
+                            <div className="xp-bar-fill" style={{ '--xp-width': `${Math.min((user.totalUploads || 0) * 10, 100)}%` } as any} />
+                        </div>
+                    </div>
                 </div>
+            )}
+
+            {/* Navigation */}
+            <nav style={{ flex: 1, padding: '8px 0', overflowY: 'auto' }}>
+                <div className="section-label">Main Menu</div>
                 {navItems.map(item => <NavLink key={item.href} {...item} />)}
 
                 {(user?.role === 'coach' || user?.role === 'admin') && (
                     <>
-                        <div style={{ padding: '16px 16px 4px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                            Coach
-                        </div>
+                        <div className="section-label" style={{ marginTop: 8 }}>Coach Tools</div>
                         {coachItems.map(item => <NavLink key={item.href} {...item} />)}
                     </>
                 )}
 
                 {user?.role === 'admin' && (
                     <>
-                        <div style={{ padding: '16px 16px 4px', fontSize: 11, fontWeight: 700, color: 'rgba(255,71,87,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                            Admin
-                        </div>
-                        <Link href="/admin" className={`sidebar-link ${pathname.startsWith('/admin') ? 'active' : ''}`}
-                            onClick={() => setMobileOpen(false)}
-                            style={{ color: pathname.startsWith('/admin') ? '#ff4757' : undefined }}>
-                            <Shield size={18} />
-                            <span>Admin Panel</span>
-                            {pathname.startsWith('/admin') && <ChevronRight size={14} className="ml-auto" />}
+                        <div className="section-label" style={{ marginTop: 8, color: 'rgba(239,68,68,0.5)' }}>Admin</div>
+                        <Link href="/admin"
+                            className={`sidebar-link ${pathname.startsWith('/admin') ? 'active' : ''}`}
+                            style={pathname.startsWith('/admin') ? { color: '#f87171', background: 'rgba(239,68,68,0.08)', borderColor: 'rgba(239,68,68,0.2)' } : {}}
+                            onClick={() => setMobileOpen(false)}>
+                            <Shield size={17} style={{ color: '#f87171' }} />
+                            <span style={{ flex: 1 }}>Admin Panel</span>
                         </Link>
                     </>
                 )}
             </nav>
 
-            {/* User info */}
-            <div style={{ padding: '12px 16px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                <Link href="/settings" className="sidebar-link" style={{ marginBottom: 4 }}>
-                    <Settings size={18} />
+            {/* Bottom actions */}
+            <div style={{ padding: '8px 8px 12px', borderTop: '1px solid var(--border)' }}>
+                <Link href="/settings" className="sidebar-link" onClick={() => setMobileOpen(false)}>
+                    <Settings size={17} />
                     <span>Settings</span>
                 </Link>
-                <button className="sidebar-link" style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', color: '#ff4757' }}
-                    onClick={logout}>
-                    <LogOut size={18} />
-                    <span>Sign out</span>
+                <button className="sidebar-link" onClick={logout}
+                    style={{ color: '#f87171', border: 'none', background: 'none', cursor: 'pointer' }}>
+                    <LogOut size={17} style={{ color: '#f87171' }} />
+                    <span>Sign Out</span>
                 </button>
-                <div style={{ marginTop: 12, padding: '10px 12px', background: 'rgba(255,255,255,0.04)', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg, #00ff88, #00c864)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 13, color: '#0a0e1a', flexShrink: 0 }}>
-                        {user?.name?.charAt(0).toUpperCase()}
-                    </div>
-                    <div style={{ overflow: 'hidden' }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.name}</div>
-                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', textTransform: 'capitalize' }}>{user?.role} · {user?.experienceLevel}</div>
-                    </div>
-                </div>
             </div>
-        </div>
+        </aside>
     );
 
     return (
         <>
-            {/* Desktop Sidebar */}
-            <div className="hidden md:block">
+            {/* Desktop sidebar */}
+            <div className="hide-mobile">
                 <SidebarContent />
             </div>
 
-            {/* Mobile top bar */}
-            <div className="md:hidden" style={{
-                position: 'fixed', top: 0, left: 0, right: 0, zIndex: 120,
-                height: 56, background: 'rgba(15,21,39,0.97)',
-                borderBottom: '1px solid rgba(0,255,136,0.12)',
-                backdropFilter: 'blur(16px)',
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '0 16px'
-            }}>
-                <Link href="/dashboard" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}>
+            {/* Mobile topbar */}
+            <div className="topbar show-mobile">
+                <Link href="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
                     <div style={{
-                        width: 36, height: 36, borderRadius: 10,
-                        background: 'rgba(255,255,255,0.03)',
-                        border: '1px solid rgba(0,255,136,0.2)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        overflow: 'hidden'
+                        width: 34, height: 34, borderRadius: 9,
+                        background: 'rgba(34,197,94,0.1)',
+                        border: '1px solid rgba(34,197,94,0.25)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden'
                     }}>
-                        <img src="/icon.png" alt="Crick Buddy" style={{ width: 30, height: 30, objectFit: 'contain' }} />
+                        <img src="/icon.png" alt="Crick Buddy" style={{ width: 28, height: 28, objectFit: 'contain' }} />
                     </div>
-                    <span style={{ fontSize: 17, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em' }}>Crick-Buddy</span>
+                    <span style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>Crick-Buddy</span>
                 </Link>
                 <button
+                    onClick={() => setMobileOpen(!mobileOpen)}
                     style={{
-                        background: 'rgba(0,255,136,0.08)', border: '1px solid rgba(0,255,136,0.2)',
-                        borderRadius: 8, padding: '7px', cursor: 'pointer', color: '#fff',
+                        background: 'rgba(34,197,94,0.08)',
+                        border: '1px solid rgba(34,197,94,0.2)',
+                        borderRadius: 8, padding: '7px',
+                        cursor: 'pointer', color: 'var(--text-primary)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center'
                     }}
-                    onClick={() => setMobileOpen(!mobileOpen)}
+                    aria-label="Toggle menu"
                 >
                     {mobileOpen ? <X size={20} /> : <Menu size={20} />}
                 </button>
             </div>
 
-            {/* Mobile Sidebar Drawer */}
+            {/* Mobile overlay */}
             {mobileOpen && (
-                <div style={{ position: 'fixed', inset: 0, zIndex: 150 }}>
-                    <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)' }}
-                        onClick={() => setMobileOpen(false)} />
-                    <SidebarContent mobile />
-                </div>
+                <div
+                    className="sidebar-overlay visible"
+                    onClick={() => setMobileOpen(false)}
+                />
             )}
+
+            {/* Mobile sidebar drawer */}
+            <div
+                className="show-mobile"
+                style={{
+                    position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 150,
+                    width: 'var(--sidebar-width)',
+                    maxWidth: '82vw',
+                    transform: mobileOpen ? 'translateX(0)' : 'translateX(-100%)',
+                    transition: 'transform 0.28s cubic-bezier(0.4, 0, 0.2, 1)',
+                    willChange: 'transform',
+                }}
+            >
+                <SidebarContent />
+            </div>
         </>
     );
 }
