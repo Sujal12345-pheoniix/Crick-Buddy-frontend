@@ -13,18 +13,7 @@ const features = [
   { icon: '🏆', color: '#14b8a6', href: '/academy', title: 'Academy Mode', desc: 'Coaches can monitor all players, compare stats and assign drills.', metrics: ['Player Monitoring', 'Team Dashboard', 'Drills Assignment', 'Leaderboard'] },
 ];
 
-const stats = [
-  { num: '10K+', label: 'Videos Analyzed' },
-  { num: '94%', label: 'Accuracy Rate' },
-  { num: '2.3x', label: 'Average Improvement' },
-  { num: '500+', label: 'Academies Using' },
-];
 
-const testimonials = [
-  { name: 'Rahul Sharma', role: 'Batsman · Semi-Pro', avatar: 'R', rating: 5, text: 'Found a stance flaw I had for 3 years. My average jumped from 28 to 47 in 6 weeks.', color: '#22c55e' },
-  { name: 'Priya Coach', role: 'Coach · Mumbai Academy', avatar: 'P', rating: 5, text: 'Academy Mode is a game-changer. I track 40 players from one dashboard instead of notebooks.', color: '#6366f1' },
-  { name: 'Arjun Mehta', role: 'Fast Bowler · Under-19', avatar: 'A', rating: 5, text: 'Ball speed went from 118 to 134 km/h in 8 weeks. Wrist correction made all the difference.', color: '#f97316' },
-];
 
 const steps = [
   { num: '01', icon: '📹', title: 'Upload Video', desc: 'Upload batting/bowling video or posture image in any format' },
@@ -160,15 +149,7 @@ export default function LandingPage() {
             </Link>
           </div>
 
-          {/* Stats row */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, maxWidth: 700, margin: '0 auto' }}>
-            {stats.map(s => (
-              <div key={s.label} style={{ textAlign: 'center', padding: '16px 8px', background: 'rgba(255,255,255,0.04)', borderRadius: 12, border: '1px solid var(--border)' }}>
-                <div style={{ fontSize: 'clamp(20px,3vw,28px)', fontWeight: 900, color: '#22c55e', lineHeight: 1 }}>{s.num}</div>
-                <div style={{ fontSize: 'clamp(10px,1.5vw,12px)', color: 'rgba(255,255,255,0.45)', marginTop: 5, fontWeight: 500 }}>{s.label}</div>
-              </div>
-            ))}
-          </div>
+
         </div>
       </section>
 
@@ -228,35 +209,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Testimonials ── */}
-      <section style={{ padding: 'clamp(60px,8vw,100px) clamp(20px,5vw,60px)', maxWidth: 1200, margin: '0 auto' }}>
-        <h2 style={{ fontSize: 'clamp(26px,4vw,42px)', fontWeight: 900, textAlign: 'center', marginBottom: 48, letterSpacing: '-0.02em' }}>
-          Players Love Crick-Buddy 🏏
-        </h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(300px,100%), 1fr))', gap: 20 }}>
-          {testimonials.map(t => (
-            <div key={t.name} className="card" style={{ padding: 24 }}>
-              <div style={{ display: 'flex', marginBottom: 14 }}>
-                {Array.from({ length: t.rating }).map((_, i) => (
-                  <Star key={i} size={15} fill="#eab308" color="#eab308" />
-                ))}
-              </div>
-              <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, lineHeight: 1.75, marginBottom: 20, fontStyle: 'italic' }}>
-                "{t.text}"
-              </p>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, borderTop: '1px solid var(--border)', paddingTop: 16 }}>
-                <div style={{ width: 36, height: 36, borderRadius: '50%', background: `linear-gradient(135deg, ${t.color}, ${t.color}88)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 14, color: '#0a0e1a', flexShrink: 0 }}>
-                  {t.avatar}
-                </div>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: 14 }}>{t.name}</div>
-                  <div style={{ fontSize: 12, color: t.color, fontWeight: 600 }}>{t.role}</div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+
 
       {/* ── Pricing ── */}
       <section id="pricing" style={{ padding: 'clamp(60px,8vw,100px) clamp(20px,5vw,60px)', background: 'rgba(255,255,255,0.02)', borderTop: '1px solid var(--border)' }}>
