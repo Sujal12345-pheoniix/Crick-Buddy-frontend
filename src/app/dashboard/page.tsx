@@ -121,26 +121,7 @@ export default function DashboardPage() {
                     </div>
                 </div>
 
-                {/* ── Stats Grid ── */}
-                <div className="dash-stats-grid" style={{ marginBottom: 24 }}>
-                    {[
-                        { icon: <Upload size={20} />, color: '#22c55e', bg: 'rgba(34,197,94,0.1)',  val: user.totalUploads  || 0, label: 'Total Uploads',      sub: 'Videos analyzed' },
-                        { icon: <FileText size={20} />, color: '#6366f1', bg: 'rgba(99,102,241,0.1)',  val: user.totalReports || 0, label: 'Reports',           sub: 'Analysis reports' },
-                        { icon: <Activity size={20} />, color: '#f97316', bg: 'rgba(249,115,22,0.1)', val: user.overallScore || 0, label: 'Overall Score',     sub: 'Out of 100' },
-                        { icon: <Zap size={20} />,      color: '#eab308', bg: 'rgba(234,179,8,0.1)',  val: pendingUploads,          label: 'Processing',       sub: 'In queue now' },
-                    ].map((stat, i) => (
-                        <div key={i} className="card" style={{ padding: '18px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
-                            <div style={{ width: 46, height: 46, borderRadius: 12, background: stat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: stat.color }}>
-                                {stat.icon}
-                            </div>
-                            <div style={{ minWidth: 0 }}>
-                                <div style={{ fontSize: 'clamp(20px,3vw,28px)', fontWeight: 900, lineHeight: 1, color: '#fff' }}>{stat.val}</div>
-                                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginTop: 2 }}>{stat.label}</div>
-                                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{stat.sub}</div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
+
 
                 {/* ── Main Grid ── */}
                 <div className="dash-main-grid" style={{ marginBottom: 24 }}>

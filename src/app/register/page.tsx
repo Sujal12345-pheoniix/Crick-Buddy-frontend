@@ -15,6 +15,7 @@ type RegisterForm = {
 export default function RegisterPage() {
     const [loading, setLoading] = useState(false);
     const [showPw, setShowPw] = useState(false);
+    const [playerType, setPlayerType] = useState('batsman');
     const { register } = useAuth();
     const router = useRouter();
 
@@ -27,10 +28,10 @@ export default function RegisterPage() {
             password: String(fd.get('password') || ''),
             confirmPassword: String(fd.get('confirmPassword') || ''),
             role: String(fd.get('role') || 'player'),
-            playerType: String(fd.get('playerType') || 'batsman'),
+            playerType: playerType,
             experienceLevel: String(fd.get('experienceLevel') || 'beginner'),
-            battingStyle: String(fd.get('battingStyle') || 'right-handed'),
-            bowlingStyle: 'none',
+            battingStyle: String(fd.get('battingStyle') || 'none'),
+            bowlingStyle: String(fd.get('bowlingStyle') || 'none'),
         };
         if (!form.name || !form.email) return toast.error('Name and email are required');
         if (form.password !== form.confirmPassword) return toast.error('Passwords do not match');
@@ -106,7 +107,7 @@ export default function RegisterPage() {
                             </div>
                             <div style={inputStyle}>
                                 <label className="input-label">Player Type</label>
-                                <select className="input" name="playerType" defaultValue="batsman">
+                                <select className="input" name="playerType" value={playerType} onChange={(e) => setPlayerType(e.target.value)}>
                                     <option value="batsman">Batsman</option>
                                     <option value="bowler">Bowler</option>
                                     <option value="all-rounder">All-Rounder</option>
@@ -121,13 +122,28 @@ export default function RegisterPage() {
                                     <option value="professional">🌟 Professional</option>
                                 </select>
                             </div>
-                            <div style={inputStyle}>
-                                <label className="input-label">Batting Style</label>
-                                <select className="input" name="battingStyle" defaultValue="right-handed">
-                                    <option value="right-handed">Right-Handed</option>
-                                    <option value="left-handed">Left-Handed</option>
-                                </select>
-                            </div>
+                            {(playerType === 'batsman' || playerType === 'all-rounder' || playerType === 'wicket-keeper') && (
+                                <div style={inputStyle}>
+                                    <label className="input-label">Batting Style</label>
+                                    <select className="input" name="battingStyle" defaultValue="right-handed">
+                                        <option value="right-handed">Right-Handed</option>
+                                        <option value="left-handed">Left-Handed</option>
+                                    </select>
+                                </div>
+                            )}
+                            {(playerType === 'bowler' || playerType === 'all-rounder') && (
+                                <div style={inputStyle}>
+                                    <label className="input-label">Bowling Style</label>
+                                    <select className="input" name="bowlingStyle" defaultValue="right-arm-fast">
+                                        <option value="right-arm-fast">Right-Arm Fast</option>
+                                        <option value="right-arm-medium">Right-Arm Medium</option>
+                                        <option value="right-arm-spin">Right-Arm Spin</option>
+                                        <option value="left-arm-fast">Left-Arm Fast</option>
+                                        <option value="left-arm-medium">Left-Arm Medium</option>
+                                        <option value="left-arm-spin">Left-Arm Spin</option>
+                                    </select>
+                                </div>
+                            )}
                         </div>
 
                         <button type="submit" className="btn btn-primary btn-full btn-lg" disabled={loading} style={{ justifyContent: 'center', marginTop: 4 }}>
@@ -137,7 +153,7 @@ export default function RegisterPage() {
 
                     <div style={{ textAlign: 'center', marginTop: 20, fontSize: 14, color: 'var(--text-muted)' }}>
                         Already have an account?{' '}
-                        <Link href="/login" style={{ color: '#22c55e', fontWeight: 700, textDecoration: 'none' }}>Sign in</Link>
+                        <Link href="/login" style={{ color: 'var(--accent-primary)', fontWeight: 700, textDecoration: 'none' }}>Sign in</Link>
                     </div>
                 </div>
             </div>

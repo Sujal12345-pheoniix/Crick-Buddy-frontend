@@ -81,9 +81,6 @@ export default function Sidebar() {
                         <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.2, letterSpacing: '-0.01em' }}>
                             Crick-Buddy
                         </div>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-green)', letterSpacing: '0.06em', textTransform: 'uppercase', marginTop: 1 }}>
-                            AI Platform
-                        </div>
                     </div>
                 </Link>
             </div>
@@ -171,31 +168,22 @@ export default function Sidebar() {
                 <SidebarContent />
             </div>
 
-            {/* Mobile topbar */}
-            <div className="topbar show-mobile">
-                <Link href="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-                    <div style={{
-                        width: 34, height: 34, borderRadius: 9,
-                        background: 'rgba(34,197,94,0.1)',
-                        border: '1px solid rgba(34,197,94,0.25)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden'
-                    }}>
-                        <img src="/icon.png" alt="Crick Buddy" style={{ width: 28, height: 28, objectFit: 'contain' }} />
-                    </div>
-                    <span style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>Crick-Buddy</span>
-                </Link>
+            {/* Mobile floating menu toggle */}
+            <div className="show-mobile" style={{ position: 'fixed', top: 16, right: 16, zIndex: 120 }}>
                 <button
                     onClick={() => setMobileOpen(!mobileOpen)}
                     style={{
-                        background: 'rgba(34,197,94,0.08)',
-                        border: '1px solid rgba(34,197,94,0.2)',
-                        borderRadius: 8, padding: '7px',
+                        background: 'rgba(255,255,255,0.08)',
+                        backdropFilter: 'blur(12px)',
+                        border: '1px solid rgba(255,255,255,0.15)',
+                        borderRadius: 12, padding: '10px',
                         cursor: 'pointer', color: 'var(--text-primary)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center'
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
                     }}
                     aria-label="Toggle menu"
                 >
-                    {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+                    {mobileOpen ? <X size={24} /> : <Menu size={24} />}
                 </button>
             </div>
 

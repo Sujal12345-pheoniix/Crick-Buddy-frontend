@@ -64,7 +64,6 @@ export default function LandingPage() {
             <img src="/icon.png" alt="Crick Buddy" style={{ width: 32, height: 32, objectFit: 'contain' }} />
           </div>
           <span style={{ fontSize: 18, fontWeight: 800, color: '#fff', letterSpacing: '-0.01em' }}>Crick-Buddy</span>
-          <span style={{ fontSize: 11, fontWeight: 700, color: '#22c55e', background: 'rgba(34,197,94,0.1)', padding: '2px 8px', borderRadius: 20, border: '1px solid rgba(34,197,94,0.2)' }}>AI</span>
         </Link>
 
         {/* Desktop links */}
@@ -139,16 +138,12 @@ export default function LandingPage() {
         <div className="hero-orb" style={{ width: 200, height: 200, background: 'rgba(249,115,22,0.04)', top: '40%', right: '30%', animationDelay: '1s' }} />
 
         <div style={{ maxWidth: 900, margin: '0 auto', textAlign: 'center', position: 'relative', zIndex: 1, width: '100%' }}>
-          {/* Live pill */}
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 100, padding: '7px 16px', marginBottom: 28 }}>
-            <span style={{ width: 7, height: 7, background: '#22c55e', borderRadius: '50%', animation: 'pulse-ring 2s infinite', flexShrink: 0 }} />
-            <span style={{ fontSize: 13, color: '#4ade80', fontWeight: 600 }}>AI-Powered · MediaPipe + OpenCV</span>
-          </div>
+
 
           <h1 style={{ fontSize: 'clamp(38px,7vw,80px)', fontWeight: 900, lineHeight: 1.05, marginBottom: 24, letterSpacing: '-0.02em' }}>
             Your Cricket Coach<br />
-            <span style={{ background: 'linear-gradient(135deg, #22c55e 0%, #6366f1 60%, #f97316 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-              Powered by AI
+            <span style={{ background: 'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              Level Up Your Game
             </span>
           </h1>
 
@@ -338,7 +333,7 @@ export default function LandingPage() {
           <span style={{ fontWeight: 800, fontSize: 15 }}>Crick-Buddy Cricket AI</span>
         </div>
         <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: 13 }}>
-          © 2024 Crick-Buddy · Built with MediaPipe, OpenCV & Next.js
+          © 2026 Crick-Buddy · Your Digital Cricket Partner
         </p>
       </footer>
     </div>

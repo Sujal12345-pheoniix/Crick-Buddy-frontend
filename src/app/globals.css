@@ -1,58 +1,60 @@
 /* ── Google Fonts ── */
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 
 @import "tailwindcss";
 
-
 :root {
-  /* Colors */
-  --bg-primary: #06080f;
-  --bg-secondary: #0c0f1d;
-  --bg-card: #111626;
-  --bg-card-hover: #161c2e;
-  --bg-glass: rgba(255,255,255,0.04);
+  /* Colors - Modern, Warm Dark Theme */
+  --bg-primary: #0A0A0C;
+  --bg-secondary: #121318;
+  --bg-card: #181A20;
+  --bg-card-hover: #1E2129;
+  --bg-glass: rgba(255,255,255,0.03);
 
-  --accent-green: #22c55e;
-  --accent-green-bright: #4ade80;
-  --accent-green-dim: rgba(34,197,94,0.12);
-  --accent-blue: #6366f1;
-  --accent-blue-dim: rgba(99,102,241,0.12);
-  --accent-orange: #f97316;
-  --accent-gold: #eab308;
-  --accent-pink: #ec4899;
-  --accent-teal: #14b8a6;
-  --accent-red: #ef4444;
+  --accent-primary: #FF5A5F; /* Human warm red-pink */
+  --accent-secondary: #6366F1; /* Soft indigo */
+  
+  --accent-green: #10B981;
+  --accent-green-bright: #34D399;
+  --accent-green-dim: rgba(16,185,129,0.12);
+  --accent-blue: #3B82F6;
+  --accent-blue-dim: rgba(59,130,246,0.12);
+  --accent-orange: #F97316;
+  --accent-gold: #F59E0B;
+  --accent-pink: #EC4899;
+  --accent-teal: #14B8A6;
+  --accent-red: #EF4444;
 
-  --text-primary: #f1f5f9;
-  --text-secondary: rgba(241,245,249,0.6);
-  --text-muted: rgba(241,245,249,0.35);
+  --text-primary: #F8FAFC;
+  --text-secondary: rgba(248,250,252,0.65);
+  --text-muted: rgba(248,250,252,0.4);
 
-  --border: rgba(255,255,255,0.07);
-  --border-green: rgba(34,197,94,0.2);
-  --border-hover: rgba(255,255,255,0.14);
+  --border: rgba(255,255,255,0.06);
+  --border-green: rgba(16,185,129,0.2);
+  --border-hover: rgba(255,255,255,0.12);
 
-  --shadow-sm: 0 2px 8px rgba(0,0,0,0.4);
-  --shadow-md: 0 4px 20px rgba(0,0,0,0.5);
-  --shadow-glow-green: 0 0 30px rgba(34,197,94,0.15);
+  --shadow-sm: 0 4px 12px rgba(0,0,0,0.3);
+  --shadow-md: 0 8px 24px rgba(0,0,0,0.4);
+  --shadow-glow-green: 0 0 30px rgba(16,185,129,0.15);
   --shadow-glow-blue: 0 0 30px rgba(99,102,241,0.15);
 
-  --gradient-hero: linear-gradient(135deg, #06080f 0%, #0c0f1d 60%, #0a1020 100%);
-  --gradient-green: linear-gradient(135deg, #22c55e, #16a34a);
-  --gradient-blue: linear-gradient(135deg, #6366f1, #4f46e5);
-  --gradient-orange: linear-gradient(135deg, #f97316, #ea580c);
-  --gradient-gold: linear-gradient(135deg, #eab308, #ca8a04);
-  --gradient-card: linear-gradient(145deg, #111626 0%, #0d1020 100%);
+  --gradient-hero: linear-gradient(135deg, #0A0A0C 0%, #121318 60%, #0F1116 100%);
+  --gradient-green: linear-gradient(135deg, #10B981, #059669);
+  --gradient-blue: linear-gradient(135deg, #6366F1, #4F46E5);
+  --gradient-orange: linear-gradient(135deg, #F97316, #EA580C);
+  --gradient-gold: linear-gradient(135deg, #F59E0B, #D97706);
+  --gradient-card: linear-gradient(145deg, #181A20 0%, #121318 100%);
 
-  --radius-sm: 8px;
-  --radius: 12px;
-  --radius-lg: 18px;
-  --radius-xl: 24px;
+  --radius-sm: 10px;
+  --radius: 16px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
   --radius-full: 9999px;
 
   --sidebar-width: 256px;
   --topbar-height: 60px;
 
-  --font-primary: 'Plus Jakarta Sans', -apple-system, sans-serif;
+  --font-primary: 'Outfit', -apple-system, sans-serif;
   --font-mono: 'Space Grotesk', monospace;
 }
 
@@ -402,7 +404,7 @@ a { color: inherit; text-decoration: none; }
 @media (max-width: 768px) {
   .sidebar { transform: translateX(-100%); pointer-events: none; }
   .sidebar.mobile-visible { transform: translateX(0); pointer-events: all; }
-  .main-content { margin-left: 0; padding-top: var(--topbar-height); }
+  .main-content { margin-left: 0; padding-top: 24px; }
 }
 
 /* ── Mobile Overlay ── */
@@ -416,22 +418,7 @@ a { color: inherit; text-decoration: none; }
 }
 .sidebar-overlay.visible { display: block; }
 
-/* ── Top Bar (mobile) ── */
-.topbar {
-  display: none;
-  position: fixed;
-  top: 0; left: 0; right: 0;
-  height: var(--topbar-height);
-  background: rgba(12,15,29,0.95);
-  border-bottom: 1px solid var(--border);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  z-index: 120;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 16px;
-}
-@media (max-width: 768px) { .topbar { display: flex; } }
+/* ── Top Bar (mobile) removed ── */
 
 /* ── Score Ring ── */
 .score-ring {
