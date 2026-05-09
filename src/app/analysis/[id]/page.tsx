@@ -128,35 +128,41 @@ export default function AnalysisPage() {
 
                         {/* Status card */}
                         {upload && (
-                        <div className="card" style={{ padding: 24, marginBottom: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+                        <div className="card-glass" style={{ padding: '28px 32px', marginBottom: 32, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, boxShadow: '0 20px 50px rgba(0,0,0,0.2)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 28 }}>
                                 {isCompleted && report && <ScoreBadge score={report.overallScore || 0} size="lg" />}
                                 <div>
-                                    <div style={{ fontSize: 20, fontWeight: 800, textTransform: 'capitalize', marginBottom: 4 }}>
-                                        {type} Analysis — {isCompleted ? 'Complete' : upload?.status}
+                                    <div style={{ fontSize: 'clamp(20px, 3vw, 26px)', fontWeight: 900, textTransform: 'capitalize', marginBottom: 6, letterSpacing: '-0.02em' }}>
+                                        {type} Analysis <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>—</span> {isCompleted ? <span style={{ color: 'var(--accent-green-bright)' }}>Success</span> : <span style={{ color: 'var(--accent-gold)' }}>{upload?.status}</span>}
                                     </div>
-                                    <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 14 }}>
-                                        {upload?.originalName || 'Uploaded file'} · {createdAtText}
+                                    <div style={{ color: 'var(--text-secondary)', fontSize: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
+                                        <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{upload?.originalName || 'Analysis Record'}</span>
+                                        <span style={{ opacity: 0.3 }}>|</span>
+                                        <span>{createdAtText}</span>
                                     </div>
-                                    <div style={{ marginTop: 8 }}><StatusBadge status={upload?.status} /></div>
+                                    <div style={{ marginTop: 12 }}><StatusBadge status={upload?.status} /></div>
                                 </div>
                             </div>
                             {!isCompleted && upload?.status !== 'failed' && (
-                                <div style={{ textAlign: 'center' }}>
-                                    <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginBottom: 8 }}>
-                                        Processing... {upload?.processingProgress || 0}%
+                                <div style={{ textAlign: 'right', minWidth: 220 }}>
+                                    <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 10, fontWeight: 600 }}>
+                                        AI ENGINE PROCESSING... {upload?.processingProgress || 0}%
                                     </div>
-                                    <div className="progress-bar" style={{ width: 200 }}>
-                                        <div className="progress-fill" style={{ width: `${upload?.processingProgress || 0}%` }} />
+                                    <div className="xp-bar-container" style={{ height: 10 }}>
+                                        <div className="xp-bar-fill" style={{ width: `${upload?.processingProgress || 0}%` }} />
                                     </div>
-                                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', marginTop: 6 }}>Auto-refreshing...</div>
+                                    <div style={{ fontSize: 12, color: 'var(--accent-green-bright)', marginTop: 8, fontWeight: 500, animation: 'glow-pulse 2s infinite' }}>
+                                        Analyzing pose biomechanics...
+                                    </div>
                                 </div>
                             )}
                             {upload?.status === 'failed' && (
-                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
-                                    <div style={{ color: '#ff4757', fontSize: 14 }}>❌ {upload?.errorMessage || 'Analysis failed'}</div>
-                                    <button className="btn-secondary" onClick={retryAnalysis} disabled={retrying}>
-                                        {retrying ? 'Retrying...' : 'Retry Analysis'}
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 12 }}>
+                                    <div style={{ color: 'var(--accent-red)', fontSize: 14, fontWeight: 600, background: 'rgba(239,68,68,0.1)', padding: '8px 16px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.2)' }}>
+                                        ⚠️ {upload?.errorMessage || 'Analysis failed'}
+                                    </div>
+                                    <button className="btn btn-secondary" onClick={retryAnalysis} disabled={retrying}>
+                                        {retrying ? 'Retrying...' : 'Restart Analysis Engine'}
                                     </button>
                                 </div>
                             )}
@@ -164,16 +170,19 @@ export default function AnalysisPage() {
                         )}
 
                         {isStaleProcessing && (
-                            <div style={{ marginBottom: 24 }}>
-                                <div className="card" style={{ padding: 16, display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'center' }}>
-                                    <div>
-                                        <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>Processing is taking longer than expected</div>
-                                        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>
-                                            Retry to regenerate the report if the worker was interrupted.
+                            <div style={{ marginBottom: 32 }}>
+                                <div className="card" style={{ padding: 20, display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'center', border: '1px solid var(--accent-gold)' }}>
+                                    <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                                        <div style={{ fontSize: 24 }}>⏳</div>
+                                        <div>
+                                            <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 2 }}>Analysis Timeout</div>
+                                            <div style={{ fontSize: 14, color: 'var(--text-secondary)' }}>
+                                                The analysis is taking longer than usual. You can try restarting the process.
+                                            </div>
                                         </div>
                                     </div>
-                                    <button className="btn-secondary" onClick={retryAnalysis} disabled={retrying}>
-                                        {retrying ? 'Retrying...' : 'Retry Analysis'}
+                                    <button className="btn btn-secondary" onClick={retryAnalysis} disabled={retrying} style={{ borderColor: 'var(--accent-gold)', color: 'var(--accent-gold)' }}>
+                                        {retrying ? 'Retrying...' : 'Restart Analysis'}
                                     </button>
                                 </div>
                             </div>
@@ -181,22 +190,26 @@ export default function AnalysisPage() {
 
                         {/* Report details */}
                         {isCompleted && report && (
-                            <>
+                            <div className="animate-fadeUp">
                                 {/* Batting metrics */}
                                 {type === 'batting' && report.battingMetrics && (
-                                    <div style={{ marginBottom: 24 }}>
-                                        <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16 }}>🏏 Batting Metrics</h2>
-                                        <div className="metric-grid">
-                                            <MetricCard label="Stance" value={report.battingMetrics.stanceScore} unit="pts" score={report.battingMetrics.stanceScore} />
-                                            <MetricCard label="Bat Swing Angle" value={report.battingMetrics.batSwingAngle?.toFixed(1) || '—'} unit="°" />
-                                            <MetricCard label="Head Position" value={report.battingMetrics.headPositionScore} unit="pts" score={report.battingMetrics.headPositionScore} />
-                                            <MetricCard label="Timing" value={report.battingMetrics.timingScore} unit="pts" score={report.battingMetrics.timingScore} />
-                                            <MetricCard label="Follow-Through" value={report.battingMetrics.followThroughScore} unit="pts" score={report.battingMetrics.followThroughScore} />
-                                            <MetricCard label="Shot Type" value={report.battingMetrics.shotType || '—'} />
+                                    <div style={{ marginBottom: 40 }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+                                            <div style={{ fontSize: 28 }}>🏏</div>
+                                            <h2 style={{ fontSize: 22, fontWeight: 900, letterSpacing: '-0.02em' }}>Technical Batting Performance</h2>
+                                        </div>
+                                        <div className="metric-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 20 }}>
+                                            <MetricCard label="Stance Alignment" value={report.battingMetrics.stanceScore} unit="pts" score={report.battingMetrics.stanceScore} />
+                                            <MetricCard label="Swing Plane Angle" value={report.battingMetrics.batSwingAngle?.toFixed(1) || '—'} unit="°" />
+                                            <MetricCard label="Head Stability" value={report.battingMetrics.headPositionScore} unit="pts" score={report.battingMetrics.headPositionScore} />
+                                            <MetricCard label="Impact Timing" value={report.battingMetrics.timingScore} unit="pts" score={report.battingMetrics.timingScore} />
+                                            <MetricCard label="Power Follow-Through" value={report.battingMetrics.followThroughScore} unit="pts" score={report.battingMetrics.followThroughScore} />
+                                            <MetricCard label="Detected Shot" value={report.battingMetrics.shotType || '—'} color="var(--accent-secondary)" />
                                         </div>
                                         {report.battingMetrics.headPosition && (
-                                            <div style={{ marginTop: 12, padding: '12px 16px', background: 'rgba(0,255,136,0.06)', borderRadius: 8, border: '1px solid rgba(0,255,136,0.15)', fontSize: 14, color: 'rgba(255,255,255,0.7)' }}>
-                                                🎯 <strong>Head Position:</strong> {report.battingMetrics.headPosition}
+                                            <div style={{ marginTop: 20, padding: '16px 20px', background: 'var(--accent-green-dim)', borderRadius: 12, border: '1px solid var(--border-green)', fontSize: 15, color: 'var(--text-primary)', display: 'flex', gap: 12, alignItems: 'center' }}>
+                                                <span style={{ fontSize: 20 }}>🎯</span>
+                                                <div><strong>Coach's Observation:</strong> {report.battingMetrics.headPosition}</div>
                                             </div>
                                         )}
                                     </div>
@@ -204,37 +217,37 @@ export default function AnalysisPage() {
 
                                 {/* Bowling metrics */}
                                 {type === 'bowling' && report.bowlingMetrics && (
-                                    <div style={{ marginBottom: 24 }}>
-                                        <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16 }}>⚡ Bowling Metrics</h2>
-                                        <div className="metric-grid">
-                                            <MetricCard label="Wrist Position" value={report.bowlingMetrics.wristPositionScore} unit="pts" score={report.bowlingMetrics.wristPositionScore} color="#3b82f6" />
-                                            <MetricCard label="Arm Rotation" value={report.bowlingMetrics.armRotationAngle?.toFixed(1) || '—'} unit="°" color="#3b82f6" />
-                                            <MetricCard label="Release Point" value={report.bowlingMetrics.releasePointScore} unit="pts" score={report.bowlingMetrics.releasePointScore} color="#3b82f6" />
-                                            <MetricCard label="Ball Speed" value={report.bowlingMetrics.estimatedBallSpeed || '—'} unit="km/h" color="#00ff88" />
-                                            <MetricCard label="Balance" value={report.bowlingMetrics.balanceScore} unit="pts" score={report.bowlingMetrics.balanceScore} color="#3b82f6" />
-                                            <MetricCard label="Bowling Style" value={report.bowlingMetrics.bowlingStyle || '—'} color="#f59e0b" />
+                                    <div style={{ marginBottom: 40 }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+                                            <div style={{ fontSize: 28 }}>⚡</div>
+                                            <h2 style={{ fontSize: 22, fontWeight: 900, letterSpacing: '-0.02em' }}>Pace & Delivery Metrics</h2>
                                         </div>
-                                        {report.bowlingMetrics.releasePointNote && (
-                                            <div style={{ marginTop: 12, padding: '12px 16px', background: 'rgba(59,130,246,0.06)', borderRadius: 8, border: '1px solid rgba(59,130,246,0.15)', fontSize: 14 }}>
-                                                🎯 {report.bowlingMetrics.releasePointNote}
+                                        <div className="metric-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 20 }}>
+                                            <MetricCard label="Seam Position (Wrist)" value={report.bowlingMetrics.wristPositionScore} unit="pts" score={report.bowlingMetrics.wristPositionScore} color="var(--accent-blue)" />
+                                            <MetricCard label="Arm Extension" value={report.bowlingMetrics.armRotationAngle?.toFixed(1) || '—'} unit="°" color="var(--accent-blue)" />
+                                            <MetricCard label="Release Elevation" value={report.bowlingMetrics.releasePointScore} unit="pts" score={report.bowlingMetrics.releasePointScore} color="var(--accent-blue)" />
+                                            <MetricCard label="Calculated Speed" value={report.bowlingMetrics.estimatedBallSpeed || '—'} unit="km/h" color="var(--accent-green-bright)" />
+                                            <MetricCard label="Delivery Balance" value={report.bowlingMetrics.balanceScore} unit="pts" score={report.bowlingMetrics.balanceScore} color="var(--accent-blue)" />
+                                            <MetricCard label="Action Style" value={report.bowlingMetrics.bowlingStyle || '—'} color="var(--accent-gold)" />
+                                        </div>
+                                        
+                                        {/* Enhanced Speed Gauge */}
+                                        <div style={{ marginTop: 24, padding: 28, background: 'linear-gradient(145deg, rgba(16,185,129,0.08), rgba(16,185,129,0.02))', borderRadius: 20, border: '1px solid var(--border-green)', display: 'flex', alignItems: 'center', gap: 32, flexWrap: 'wrap' }}>
+                                            <div style={{ textAlign: 'center', background: 'rgba(0,0,0,0.2)', padding: '20px 30px', borderRadius: 16, border: '1px solid rgba(16,185,129,0.2)' }}>
+                                                <div style={{ fontSize: 56, fontWeight: 900, color: 'var(--accent-green-bright)', lineHeight: 1 }}>{report.bowlingMetrics.estimatedBallSpeed || 0}</div>
+                                                <div style={{ fontSize: 14, color: 'var(--text-muted)', marginTop: 8, fontWeight: 700 }}>KM/H</div>
                                             </div>
-                                        )}
-                                        {/* Speed gauge */}
-                                        <div style={{ marginTop: 16, padding: 20, background: 'rgba(0,255,136,0.04)', borderRadius: 12, border: '1px solid rgba(0,255,136,0.1)', display: 'flex', alignItems: 'center', gap: 24 }}>
-                                            <div style={{ textAlign: 'center' }}>
-                                                <div style={{ fontSize: 48, fontWeight: 900, color: '#00ff88' }}>{report.bowlingMetrics.estimatedBallSpeed || 0}</div>
-                                                <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)' }}>km/h</div>
-                                            </div>
-                                            <div>
-                                                <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Ball Speed Estimation</div>
-                                                <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)' }}>
-                                                    Calculated using OpenCV optical flow analysis across video frames
+                                            <div style={{ flex: 1, minWidth: 280 }}>
+                                                <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 6 }}>Ball Speed Analysis</div>
+                                                <div style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                                                    {report.bowlingMetrics.releasePointNote || 'High-precision optical flow motion tracking across video sequence.'}
                                                 </div>
-                                                <div className="progress-bar" style={{ marginTop: 10, width: 300 }}>
-                                                    <div className="progress-fill" style={{ width: `${Math.min(100, ((report.bowlingMetrics.estimatedBallSpeed || 0) / 160) * 100)}%` }} />
+                                                <div className="xp-bar-container" style={{ marginTop: 16, height: 12 }}>
+                                                    <div className="xp-bar-fill" style={{ width: `${Math.min(100, ((report.bowlingMetrics.estimatedBallSpeed || 0) / 160) * 100)}%` }} />
                                                 </div>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 4 }}>
-                                                    <span>80 km/h</span><span>160 km/h</span>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-muted)', marginTop: 8, fontWeight: 700, letterSpacing: '0.05em' }}>
+                                                    <span>MIN (80 KM/H)</span>
+                                                    <span>ELITE (160 KM/H)</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -243,101 +256,133 @@ export default function AnalysisPage() {
 
                                 {/* Posture metrics */}
                                 {type === 'posture' && report.postureMetrics && (
-                                    <div style={{ marginBottom: 24 }}>
-                                        <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16 }}>📸 Posture Metrics</h2>
-                                        <div className="metric-grid">
-                                            <MetricCard label="Shoulder Alignment" value={report.postureMetrics.shoulderAlignmentScore} unit="pts" score={report.postureMetrics.shoulderAlignmentScore} color="#f59e0b" />
-                                            <MetricCard label="Knee Bend Angle" value={report.postureMetrics.kneeBendAngle?.toFixed(1) || '—'} unit="°" color="#f59e0b" />
-                                            <MetricCard label="Knee Bend Score" value={report.postureMetrics.kneeBendScore} unit="pts" score={report.postureMetrics.kneeBendScore} color="#f59e0b" />
-                                            <MetricCard label="Balance" value={report.postureMetrics.balanceScore} unit="pts" score={report.postureMetrics.balanceScore} color="#f59e0b" />
-                                            <MetricCard label="Spine Position" value={report.postureMetrics.spinePosScore} unit="pts" score={report.postureMetrics.spinePosScore} color="#f59e0b" />
+                                    <div style={{ marginBottom: 40 }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+                                            <div style={{ fontSize: 28 }}>📸</div>
+                                            <h2 style={{ fontSize: 22, fontWeight: 900, letterSpacing: '-0.02em' }}>Athletic Posture Analysis</h2>
+                                        </div>
+                                        <div className="metric-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 20 }}>
+                                            <MetricCard label="Shoulder Parallelism" value={report.postureMetrics.shoulderAlignmentScore} unit="pts" score={report.postureMetrics.shoulderAlignmentScore} color="var(--accent-gold)" />
+                                            <MetricCard label="Knee Flexion" value={report.postureMetrics.kneeBendAngle?.toFixed(1) || '—'} unit="°" color="var(--accent-gold)" />
+                                            <MetricCard label="Kinetic Balance" value={report.postureMetrics.balanceScore} unit="pts" score={report.postureMetrics.balanceScore} color="var(--accent-gold)" />
+                                            <MetricCard label="Spinal Alignment" value={report.postureMetrics.spinePosScore} unit="pts" score={report.postureMetrics.spinePosScore} color="var(--accent-gold)" />
                                         </div>
                                     </div>
                                 )}
 
-                                {/* AI Report */}
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 24 }}>
-                                    <div className="card" style={{ padding: 24 }}>
-                                        <h3 style={{ fontSize: 16, fontWeight: 700, color: '#00ff88', marginBottom: 16 }}>💪 Strengths</h3>
-                                        {(report.strengths || []).map((s: string, i: number) => (
-                                            <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 10, alignItems: 'flex-start' }}>
-                                                <span style={{ color: '#00ff88', marginTop: 2, flexShrink: 0 }}>✓</span>
-                                                <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.75)' }}>{s}</span>
-                                            </div>
-                                        ))}
+                                {/* AI Expert Report - Grid Layout */}
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', gap: 24, marginBottom: 40 }}>
+                                    <div className="card" style={{ padding: 28, background: 'rgba(16,185,129,0.03)' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+                                            <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(16,185,129,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-green-bright)' }}>💪</div>
+                                            <h3 style={{ fontSize: 18, fontWeight: 800 }}>Key Technical Strengths</h3>
+                                        </div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                                            {(report.strengths || []).map((s: string, i: number) => (
+                                                <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                                                    <div style={{ width: 20, height: 20, borderRadius: '50%', background: 'rgba(16,185,129,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: 'var(--accent-green-bright)', flexShrink: 0, marginTop: 2 }}>✓</div>
+                                                    <span style={{ fontSize: 15, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{s}</span>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
-                                    <div className="card" style={{ padding: 24 }}>
-                                        <h3 style={{ fontSize: 16, fontWeight: 700, color: '#ff4757', marginBottom: 16 }}>⚠️ Weaknesses</h3>
-                                        {(report.weaknesses || []).map((w: string, i: number) => (
-                                            <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 10, alignItems: 'flex-start' }}>
-                                                <span style={{ color: '#ff4757', marginTop: 2, flexShrink: 0 }}>!</span>
-                                                <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.75)' }}>{w}</span>
-                                            </div>
-                                        ))}
+
+                                    <div className="card" style={{ padding: 28, background: 'rgba(239,68,68,0.03)' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+                                            <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(239,68,68,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-red)' }}>⚠️</div>
+                                            <h3 style={{ fontSize: 18, fontWeight: 800 }}>Areas for Development</h3>
+                                        </div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                                            {(report.weaknesses || []).map((w: string, i: number) => (
+                                                <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                                                    <div style={{ width: 20, height: 20, borderRadius: '50%', background: 'rgba(239,68,68,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: 'var(--accent-red)', flexShrink: 0, marginTop: 2 }}>!</div>
+                                                    <span style={{ fontSize: 15, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{w}</span>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
-                                    <div className="card" style={{ padding: 24 }}>
-                                        <h3 style={{ fontSize: 16, fontWeight: 700, color: '#ff6b6b', marginBottom: 16 }}>❌ Mistakes Identified</h3>
-                                        {(report.mistakes || []).map((m: string, i: number) => (
-                                            <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 10, alignItems: 'flex-start' }}>
-                                                <span style={{ color: '#ff6b6b', marginTop: 2 }}>✕</span>
-                                                <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.75)' }}>{m}</span>
-                                            </div>
-                                        ))}
+
+                                    <div className="card" style={{ padding: 28 }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+                                            <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(56,189,248,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-primary)' }}>💡</div>
+                                            <h3 style={{ fontSize: 18, fontWeight: 800 }}>Coaching Cues</h3>
+                                        </div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                                            {(report.improvementSuggestions || []).map((s: string, i: number) => (
+                                                <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                                                    <div style={{ color: 'var(--accent-primary)', marginTop: 2, flexShrink: 0 }}>→</div>
+                                                    <span style={{ fontSize: 15, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{s}</span>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
-                                    <div className="card" style={{ padding: 24 }}>
-                                        <h3 style={{ fontSize: 16, fontWeight: 700, color: '#3b82f6', marginBottom: 16 }}>💡 Improvement Tips</h3>
-                                        {(report.improvementSuggestions || []).map((s: string, i: number) => (
-                                            <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 10, alignItems: 'flex-start' }}>
-                                                <span style={{ color: '#3b82f6', marginTop: 2 }}>→</span>
-                                                <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.75)' }}>{s}</span>
-                                            </div>
-                                        ))}
+
+                                    <div className="card" style={{ padding: 28 }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+                                            <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(245,158,11,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-gold)' }}>🏋️</div>
+                                            <h3 style={{ fontSize: 18, fontWeight: 800 }}>Drills to Master</h3>
+                                        </div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                                            {(report.trainingDrills || []).map((d: string, i: number) => (
+                                                <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                                                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent-gold)', flexShrink: 0, marginTop: 9 }}></div>
+                                                    <span style={{ fontSize: 15, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{d}</span>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
-                                    <div className="card" style={{ padding: 24 }}>
-                                        <h3 style={{ fontSize: 16, fontWeight: 700, color: '#f59e0b', marginBottom: 16 }}>🏋️ Training Drills</h3>
-                                        {(report.trainingDrills || []).map((d: string, i: number) => (
-                                            <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 10, alignItems: 'flex-start' }}>
-                                                <span style={{ color: '#f59e0b', marginTop: 2 }}>▶</span>
-                                                <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.75)' }}>{d}</span>
+                                    
+                                    <div className="card-glass" style={{ padding: 32, gridColumn: '1 / -1', background: 'rgba(129,140,248,0.05)', border: '1px solid rgba(129,140,248,0.2)' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
+                                            <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(129,140,248,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>🛡️</div>
+                                            <div>
+                                                <h3 style={{ fontSize: 20, fontWeight: 900 }}>Pro Strategy & Habits</h3>
+                                                <p style={{ fontSize: 14, color: 'var(--text-muted)' }}>Expert advice on recovery, gear, and elite best practices.</p>
                                             </div>
-                                        ))}
-                                    </div>
-                                    <div className="card" style={{ padding: 24 }}>
-                                        <h3 style={{ fontSize: 16, fontWeight: 700, color: '#10b981', marginBottom: 16 }}>🛡️ Best Practices</h3>
-                                        {(report.bestPractices || []).map((p: string, i: number) => (
-                                            <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 10, alignItems: 'flex-start' }}>
-                                                <span style={{ color: '#10b981', marginTop: 2 }}>⭐</span>
-                                                <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.75)' }}>{p}</span>
+                                        </div>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 24 }}>
+                                            <div>
+                                                <h4 style={{ fontSize: 14, fontWeight: 800, color: 'var(--accent-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 14 }}>Recommendations</h4>
+                                                {(report.recommendations || []).map((r: string, i: number) => (
+                                                    <div key={i} style={{ display: 'flex', gap: 10, marginBottom: 12, fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                                                        <span style={{ color: 'var(--accent-secondary)' }}>•</span> {r}
+                                                    </div>
+                                                ))}
                                             </div>
-                                        ))}
-                                    </div>
-                                    <div className="card" style={{ padding: 24, gridColumn: 'span 2' }}>
-                                        <h3 style={{ fontSize: 16, fontWeight: 700, color: '#8b5cf6', marginBottom: 16 }}>🎒 Equipment & Strategy Recommendations</h3>
-                                        {(report.recommendations || []).map((r: string, i: number) => (
-                                            <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 10, alignItems: 'flex-start' }}>
-                                                <span style={{ color: '#8b5cf6', marginTop: 2 }}>✓</span>
-                                                <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.75)' }}>{r}</span>
+                                            <div>
+                                                <h4 style={{ fontSize: 14, fontWeight: 800, color: 'var(--accent-green-bright)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 14 }}>Elite Best Practices</h4>
+                                                {(report.bestPractices || []).map((p: string, i: number) => (
+                                                    <div key={i} style={{ display: 'flex', gap: 10, marginBottom: 12, fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                                                        <span style={{ color: 'var(--accent-green-bright)' }}>★</span> {p}
+                                                    </div>
+                                                ))}
                                             </div>
-                                        ))}
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div style={{ display: 'flex', gap: 12 }}>
-                                    <Link href="/upload" className="btn-primary">Upload Another Video</Link>
-                                    <Link href="/progress" className="btn-secondary">View Progress Charts</Link>
+                                <div style={{ display: 'flex', gap: 16, paddingBottom: 60 }}>
+                                    <Link href="/upload" className="btn btn-primary btn-lg">
+                                        Analyze Another Video
+                                    </Link>
+                                    <Link href="/progress" className="btn btn-secondary btn-lg">
+                                        View Improvement Roadmap
+                                    </Link>
                                 </div>
-                            </>
+                            </div>
                         )}
 
                         {/* Processing or failed state */}
                         {(upload && (!isCompleted || !report) && upload?.status !== 'failed') && (
-                            <div style={{ textAlign: 'center', padding: '60px 0' }}>
-                                <div style={{ fontSize: 64, marginBottom: 20 }}>🤖</div>
-                                <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 12 }}>AI is Analyzing Your {type}</h2>
-                                <p style={{ color: 'rgba(255,255,255,0.45)', marginBottom: 8 }}>
-                                    {upload?.status === 'completed' ? 'Finishing report generation and storing your analysis...' : 'MediaPipe is extracting pose landmarks from your video frames...'}
+                            <div className="animate-fadeIn" style={{ textAlign: 'center', padding: '100px 0' }}>
+                                <div style={{ fontSize: 80, marginBottom: 24, animation: 'float 4s ease-in-out infinite' }}>🤖</div>
+                                <h2 style={{ fontSize: 28, fontWeight: 900, marginBottom: 16, letterSpacing: '-0.02em' }}>AI Engine is Processing Your {type}</h2>
+                                <p style={{ color: 'var(--text-secondary)', marginBottom: 12, fontSize: 17, maxWidth: 600, margin: '0 auto 12px', lineHeight: 1.7 }}>
+                                    {upload?.status === 'completed' ? 'Finalizing report generation and synchronizing with your athlete profile...' : 'MediaPipe is performing frame-by-frame biomechanical extraction...'}
                                 </p>
-                                <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13 }}>This page will update automatically every 4 seconds.</p>
+                                <div style={{ color: 'var(--accent-green-bright)', fontSize: 14, fontWeight: 600 }}>
+                                    Auto-refreshing in 4s...
+                                </div>
                             </div>
                         )}
                     </>
