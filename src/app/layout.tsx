@@ -3,11 +3,17 @@ import './globals.css';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { Toaster } from 'react-hot-toast';
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: '#06080f',
+};
+
 export const metadata: Metadata = {
   title: 'Crick-Buddy | AI Cricket Analytics Platform',
   description: 'Professional AI-powered cricket performance analysis. Analyze your batting, bowling and posture with MediaPipe & OpenCV AI technology.',
   keywords: 'cricket analysis, AI cricket coach, batting analysis, bowling analysis, cricket training',
-  viewport: 'width=device-width, initial-scale=1, viewport-fit=cover',
   icons: {
     icon: [{ url: '/icon.png', type: 'image/png' }],
     shortcut: ['/icon.png'],
