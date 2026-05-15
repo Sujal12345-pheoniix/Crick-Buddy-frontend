@@ -535,7 +535,7 @@ export default function AdminPage() {
                     <div style={{ marginTop: 28, padding: '16px 20px', background: 'rgba(0,255,136,0.05)', border: '1px solid rgba(0,255,136,0.15)', borderRadius: 10 }}>
                         <div style={{ fontSize: 13, fontWeight: 700, color: '#00ff88', marginBottom: 6 }}>Connection Info</div>
                         <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>
-                            📡 PostgreSQL · {process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000'} → Backend → Prisma → PostgreSQL
+                            📡 PostgreSQL · {process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || ''} → Backend → Prisma → PostgreSQL
                         </div>
                         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', marginTop: 4 }}>
                             All writes/reads go through the secure Express API. Direct DB access is not exposed.
