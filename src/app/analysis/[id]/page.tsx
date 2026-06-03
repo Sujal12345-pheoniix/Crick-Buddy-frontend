@@ -99,7 +99,7 @@ export default function AnalysisPage() {
     return (
         <div style={{ display: 'flex' }}>
             <Sidebar />
-            <main className="main-content" style={{ padding: '32px 40px' }}>
+            <main className="main-content" style={{ padding: 'clamp(16px,3vw,32px) clamp(16px,3.5vw,40px)', width: '100%' }}>
                 {/* Header */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 32 }}>
                     <Link href="/dashboard" style={{ color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', gap: 6, textDecoration: 'none', fontSize: 14 }}>
@@ -128,7 +128,7 @@ export default function AnalysisPage() {
 
                         {/* Status card */}
                         {upload && (
-                        <div className="card-glass" style={{ padding: '28px 32px', marginBottom: 32, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, boxShadow: '0 20px 50px rgba(0,0,0,0.2)' }}>
+                        <div className="card-glass analysis-status-card" style={{ padding: 'clamp(16px,2.5vw,28px) clamp(16px,3vw,32px)', marginBottom: 32, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, boxShadow: '0 20px 50px rgba(0,0,0,0.2)', flexWrap: 'wrap' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 28 }}>
                                 {isCompleted && report && <ScoreBadge score={report.overallScore || 0} size="lg" />}
                                 <div>
@@ -271,7 +271,7 @@ export default function AnalysisPage() {
                                 )}
 
                                 {/* AI Expert Report - Grid Layout */}
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', gap: 24, marginBottom: 40 }}>
+                                <div className="ai-report-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 24, marginBottom: 40 }}>
                                     <div className="card" style={{ padding: 28, background: 'rgba(16,185,129,0.03)' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
                                             <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(16,185,129,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-green-bright)' }}>💪</div>
@@ -361,7 +361,7 @@ export default function AnalysisPage() {
                                     </div>
                                 </div>
 
-                                <div style={{ display: 'flex', gap: 16, paddingBottom: 60 }}>
+                                <div className="btn-group-mobile" style={{ display: 'flex', gap: 16, paddingBottom: 60, flexWrap: 'wrap' }}>
                                     <Link href="/upload" className="btn btn-primary btn-lg">
                                         Analyze Another Video
                                     </Link>
