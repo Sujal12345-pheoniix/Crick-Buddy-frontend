@@ -19,6 +19,20 @@ export default function AnalysisPage() {
     const [retrying, setRetrying] = useState(false);
     const [loadError, setLoadError] = useState<string>('');
 
+    const formatErrorMessage = (msg: string) => {
+        if (!msg) return 'Analysis failed';
+        if (
+            msg.includes('502') ||
+            msg.toLowerCase().includes('bad gateway') ||
+            msg.toLowerCase().includes('unavailable') ||
+            msg.includes('503') ||
+            msg.includes('504')
+        ) {
+            return 'AI analysis service is currently unavailable. Your upload has been saved and analysis will resume automatically.';
+        }
+        return msg;
+    };
+
     const fetchData = async (isInitial = false) => {
         try {
             const u = await uploadsAPI.getOne(id);
@@ -42,13 +56,11 @@ export default function AnalysisPage() {
             }
         } catch (err: any) {
             setLoadError(err.response?.data?.message || 'Could not load this analysis.');
-            // Only show toast on initial load, otherwise stay silent during polling
             if (isInitial) {
                 toast.error(err.response?.data?.message || 'Upload not found — make sure the backend is running on port 5000');
             }
             console.error('Error fetching analysis data:', err);
         } finally {
-            // Always release loading state, not just on initial — prevents eternal spinner
             setLoading(false);
         }
     };
@@ -159,7 +171,7 @@ export default function AnalysisPage() {
                             {upload?.status === 'failed' && (
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 12 }}>
                                     <div style={{ color: 'var(--accent-red)', fontSize: 14, fontWeight: 600, background: 'rgba(239,68,68,0.1)', padding: '8px 16px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.2)' }}>
-                                        ⚠️ {upload?.errorMessage || 'Analysis failed'}
+                                        ⚠️ {formatErrorMessage(upload?.errorMessage)}
                                     </div>
                                     <button className="btn btn-secondary" onClick={retryAnalysis} disabled={retrying}>
                                         {retrying ? 'Retrying...' : 'Restart Analysis Engine'}
@@ -241,7 +253,7 @@ export default function AnalysisPage() {
                                                 <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 6 }}>Ball Speed Analysis</div>
                                                 <div style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
                                                     {report.bowlingMetrics.releasePointNote || 'High-precision optical flow motion tracking across video sequence.'}
-                                                </div>
+                                                 </div>
                                                 <div className="xp-bar-container" style={{ marginTop: 16, height: 12 }}>
                                                     <div className="xp-bar-fill" style={{ width: `${Math.min(100, ((report.bowlingMetrics.estimatedBallSpeed || 0) / 160) * 100)}%` }} />
                                                 </div>

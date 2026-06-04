@@ -1,8 +1,8 @@
 import axios from 'axios';
 
 // NEXT_PUBLIC_API_URL must be set in Vercel environment variables.
-// Uses production URL from environment
-export const API_BASE = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '');
+// Falls back to the local backend when no environment variable is provided.
+export const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api').replace(/\/$/, '');
 
 const api = axios.create({
     baseURL: API_BASE,
