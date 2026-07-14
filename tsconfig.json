@@ -19,7 +19,8 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@kenzo/sdk": ["./src/lib/kenzo-sdk"]
     }
   },
   "include": [
