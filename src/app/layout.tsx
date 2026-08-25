@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { Toaster } from 'react-hot-toast';
-import { KenzoLoader } from "../components/kenzo-loader";
+
 
 export const viewport = {
   width: 'device-width',
@@ -49,7 +49,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             }}
           />
           {children}
-            <KenzoLoader />
         </AuthProvider>
       </body>
     </html>
