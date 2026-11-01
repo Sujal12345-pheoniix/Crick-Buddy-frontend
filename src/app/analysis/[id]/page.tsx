@@ -22,6 +22,7 @@ export default function AnalysisPage() {
     const formatErrorMessage = (msg: string) => {
         if (!msg) return 'Analysis failed';
         if (
+            msg.includes('429') ||
             msg.includes('502') ||
             msg.toLowerCase().includes('bad gateway') ||
             msg.toLowerCase().includes('unavailable') ||
