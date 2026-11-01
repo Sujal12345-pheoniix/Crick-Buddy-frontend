@@ -21,16 +21,17 @@ export const metadata: Metadata = {
     shortcut: ['/icon.png'],
     apple: [{ url: '/icon.png', type: 'image/png' }],
   },
+  // Rendered by Next.js as the standard `mobile-web-app-capable` tag plus the
+  // Apple status-bar style (the old apple-mobile-web-app-capable tag is deprecated).
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <head>
-        <meta name="theme-color" content="#06080f" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-      </head>
       <body>
         <AuthProvider>
           <Toaster
