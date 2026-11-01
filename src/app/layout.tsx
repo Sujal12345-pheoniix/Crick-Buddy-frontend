@@ -31,7 +31,9 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    // globals.css sets `scroll-behavior: smooth`; this tells Next.js to switch it off
+    // during route changes so new pages open at the top instantly.
+    <html lang="en" data-scroll-behavior="smooth">
       <body>
         <AuthProvider>
           <Toaster
