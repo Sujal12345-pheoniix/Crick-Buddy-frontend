@@ -9,9 +9,9 @@ import { Upload, CheckCircle, X, Loader, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const UPLOAD_TYPES = [
-    { value: 'batting', label: 'Batting Video',  emoji: '🏏', desc: 'MP4, MOV, AVI · Max 500 MB', accept: 'video/*', color: '#22c55e', points: ['Bat swing angle', 'Stance & foot positioning', 'Head position & alignment', 'Shot timing score', 'Follow-through', 'Shot type classification'] },
-    { value: 'bowling', label: 'Bowling Video',  emoji: '⚡', desc: 'MP4, MOV, AVI · Max 500 MB', accept: 'video/*', color: '#6366f1', points: ['Wrist position at release', 'Arm rotation angle', 'Release point height', 'Estimated ball speed km/h', 'Body balance', 'Bowling style classification'] },
-    { value: 'posture', label: 'Posture Image',  emoji: '📸', desc: 'JPG, PNG, WebP · Max 50 MB',  accept: 'image/*', color: '#f97316', points: ['Shoulder alignment', 'Knee bend angle', 'Balance assessment', 'Spine position', 'Athletic posture score'] },
+    { value: 'batting', label: 'Batting Video',  emoji: '🏏', desc: 'MP4, MOV · one shot, under 30 s · Max 500 MB', accept: 'video/*', color: '#22c55e', points: ['Front-foot timing into the swing', 'Head stability into contact', 'Balance at contact', 'Stride length', 'Follow-through', 'Set-up stance & shot family'] },
+    { value: 'bowling', label: 'Bowling Video',  emoji: '⚡', desc: 'MP4, MOV · one delivery, under 30 s · Max 500 MB', accept: 'video/*', color: '#6366f1', points: ['Release height & arm extension', 'Arm-rotation smoothness', 'Wrist position at release', 'Balance at release', 'Ball speed (when the ball is visible side-on)', 'Bowling arm detection'] },
+    { value: 'posture', label: 'Posture Image',  emoji: '📸', desc: 'JPG, PNG, WebP or a short video', accept: 'image/*,video/*', color: '#f97316', points: ['Shoulder alignment', 'Knee bend angle', 'Balance assessment', 'Spine position', 'Athletic posture score'] },
 ];
 
 export default function UploadPage() {
@@ -44,15 +44,14 @@ export default function UploadPage() {
     const handleUpload = async () => {
         if (!file) return toast.error('Please select a file first');
         setUploading(true);
-        setProgress(10);
+        setProgress(0);
+        // Text fields first: the server reads `type` while the file is still streaming in.
         const fd = new FormData();
-        fd.append('file', file);
         fd.append('type', selectedType);
         if (notes) fd.append('notes', notes);
+        fd.append('file', file);
         try {
-            const interval = setInterval(() => setProgress(p => Math.min(p + 6, 88)), 600);
-            const res = await uploadsAPI.upload(fd);
-            clearInterval(interval);
+            const res = await uploadsAPI.upload(fd, setProgress);
             setProgress(100);
             setUploadedId(res.data.upload.id);
             toast.success('Upload successful! AI analysis started 🤖');
@@ -169,26 +168,26 @@ export default function UploadPage() {
                                 {uploading && (
                                     <div style={{ marginBottom: 16 }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                                            <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>⚙️ Uploading & Analyzing...</span>
+                                            <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{progress < 100 ? '⬆️ Uploading...' : '⚙️ Starting analysis...'}</span>
                                             <span style={{ fontSize: 13, color: typeData.color, fontWeight: 700 }}>{progress}%</span>
                                         </div>
                                         <div className="progress-bar" style={{ height: 8 }}>
                                             <div className="progress-fill" style={{ width: `${progress}%`, transition: 'width 0.4s ease', background: `linear-gradient(90deg, ${typeData.color}, ${typeData.color}cc)` }} />
                                         </div>
-                                        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>AI is analyzing your performance...</div>
+                                        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>Keep this page open until the upload finishes.</div>
                                     </div>
                                 )}
 
                                 <button className="btn btn-primary btn-full btn-lg" style={{ justifyContent: 'center' }}
                                     onClick={handleUpload} disabled={uploading || !file}>
                                     {uploading
-                                        ? <><Loader size={16} className="animate-spin" /> Analyzing...</>
+                                        ? <><Loader size={16} className="animate-spin" /> Uploading...</>
                                         : <><Upload size={16} /> Start AI Analysis</>}
                                 </button>
 
                                 {!file && (
                                     <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-muted)', marginTop: 12 }}>
-                                        Analysis usually takes 30–90 seconds
+                                        Tip: film side-on at hip height with the whole body in frame. Analysis takes about 15–60 seconds.
                                     </p>
                                 )}
                             </>
@@ -200,7 +199,7 @@ export default function UploadPage() {
                                 </div>
                                 <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 10 }}>Analysis Started!</h3>
                                 <p style={{ color: 'var(--text-muted)', marginBottom: 28, fontSize: 14, lineHeight: 1.7 }}>
-                                    Your AI analysis is running. Results are usually ready in 30–90 seconds.
+                                    Your AI analysis is running. Results are usually ready in 15–60 seconds.
                                 </p>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                                     <button className="btn btn-primary btn-full btn-lg" style={{ justifyContent: 'center' }}
