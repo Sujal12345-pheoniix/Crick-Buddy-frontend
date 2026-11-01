@@ -20,11 +20,12 @@ api.interceptors.request.use((config) => {
     return config;
 });
 
-// Handle 401
+// Handle 401 (a wrong password on the auth forms is a normal 401 — let the form show it)
 api.interceptors.response.use(
     (res) => res,
     (err) => {
-        if (err.response?.status === 401 && typeof window !== 'undefined') {
+        const isAuthForm = /\/auth\/(login|register)$/.test(err.config?.url || '');
+        if (err.response?.status === 401 && !isAuthForm && typeof window !== 'undefined') {
             localStorage.removeItem('crick_token');
             localStorage.removeItem('crick_user');
             window.location.href = '/login';
@@ -42,8 +43,15 @@ export const authAPI = {
 
 // ─── Uploads ──────────────────────────────────────────────────────────────
 export const uploadsAPI = {
-    upload: (formData: FormData) =>
-        api.post('/uploads', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
+    // No timeout: large videos on slow connections can take minutes to upload.
+    upload: (formData: FormData, onProgress?: (percent: number) => void) =>
+        api.post('/uploads', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+            timeout: 0,
+            onUploadProgress: (e) => {
+                if (onProgress && e.total) onProgress(Math.round((e.loaded / e.total) * 100));
+            },
+        }),
     list: () => api.get('/uploads'),
     getOne: (id: string) => api.get(`/uploads/${id}`),
     retryAnalysis: (id: string) => api.post(`/uploads/${id}/retry`),

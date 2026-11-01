@@ -211,17 +211,19 @@ export default function AnalysisPage() {
                                             <h2 style={{ fontSize: 22, fontWeight: 900, letterSpacing: '-0.02em' }}>Technical Batting Performance</h2>
                                         </div>
                                         <div className="metric-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 20 }}>
-                                            <MetricCard label="Stance Alignment" value={report.battingMetrics.stanceScore} unit="pts" score={report.battingMetrics.stanceScore} />
-                                            <MetricCard label="Swing Plane Angle" value={report.battingMetrics.batSwingAngle?.toFixed(1) || '—'} unit="°" />
-                                            <MetricCard label="Head Stability" value={report.battingMetrics.headPositionScore} unit="pts" score={report.battingMetrics.headPositionScore} />
-                                            <MetricCard label="Impact Timing" value={report.battingMetrics.timingScore} unit="pts" score={report.battingMetrics.timingScore} />
-                                            <MetricCard label="Power Follow-Through" value={report.battingMetrics.followThroughScore} unit="pts" score={report.battingMetrics.followThroughScore} />
-                                            <MetricCard label="Detected Shot" value={report.battingMetrics.shotType || '—'} color="var(--accent-secondary)" />
+                                            <MetricCard label="Timing (Foot → Swing)" value={report.battingMetrics.timingScore ?? '—'} unit="pts" score={report.battingMetrics.timingScore} />
+                                            <MetricCard label="Head Stability" value={report.battingMetrics.headStabilityScore ?? '—'} unit="pts" score={report.battingMetrics.headStabilityScore} />
+                                            <MetricCard label="Balance at Contact" value={report.battingMetrics.balanceScore ?? '—'} unit="pts" score={report.battingMetrics.balanceScore} />
+                                            <MetricCard label="Stride" value={report.battingMetrics.strideScore ?? '—'} unit="pts" score={report.battingMetrics.strideScore} />
+                                            <MetricCard label="Follow-Through" value={report.battingMetrics.followThroughScore ?? '—'} unit="pts" score={report.battingMetrics.followThroughScore} />
+                                            <MetricCard label="Set-up Stance" value={report.battingMetrics.stanceScore ?? '—'} unit="pts" score={report.battingMetrics.stanceScore} />
+                                            <MetricCard label="Swing Plane" value={report.battingMetrics.batSwingAngle?.toFixed(0) ?? '—'} unit="°" />
+                                            <MetricCard label="Shot Family" value={report.battingMetrics.shotType || '—'} color="var(--accent-secondary)" />
                                         </div>
                                         {report.battingMetrics.headPosition && (
                                             <div style={{ marginTop: 20, padding: '16px 20px', background: 'var(--accent-green-dim)', borderRadius: 12, border: '1px solid var(--border-green)', fontSize: 15, color: 'var(--text-primary)', display: 'flex', gap: 12, alignItems: 'center' }}>
                                                 <span style={{ fontSize: 20 }}>🎯</span>
-                                                <div><strong>Coach's Observation:</strong> {report.battingMetrics.headPosition}</div>
+                                                <div><strong>Head:</strong> {report.battingMetrics.headPosition}</div>
                                             </div>
                                         )}
                                     </div>
@@ -235,15 +237,22 @@ export default function AnalysisPage() {
                                             <h2 style={{ fontSize: 22, fontWeight: 900, letterSpacing: '-0.02em' }}>Pace & Delivery Metrics</h2>
                                         </div>
                                         <div className="metric-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 20 }}>
-                                            <MetricCard label="Seam Position (Wrist)" value={report.bowlingMetrics.wristPositionScore} unit="pts" score={report.bowlingMetrics.wristPositionScore} color="var(--accent-blue)" />
-                                            <MetricCard label="Arm Extension" value={report.bowlingMetrics.armRotationAngle?.toFixed(1) || '—'} unit="°" color="var(--accent-blue)" />
-                                            <MetricCard label="Release Elevation" value={report.bowlingMetrics.releasePointScore} unit="pts" score={report.bowlingMetrics.releasePointScore} color="var(--accent-blue)" />
-                                            <MetricCard label="Calculated Speed" value={report.bowlingMetrics.estimatedBallSpeed || '—'} unit="km/h" color="var(--accent-green-bright)" />
-                                            <MetricCard label="Delivery Balance" value={report.bowlingMetrics.balanceScore} unit="pts" score={report.bowlingMetrics.balanceScore} color="var(--accent-blue)" />
-                                            <MetricCard label="Action Style" value={report.bowlingMetrics.bowlingStyle || '—'} color="var(--accent-gold)" />
+                                            <MetricCard label="Release Point" value={report.bowlingMetrics.releasePointScore ?? '—'} unit="pts" score={report.bowlingMetrics.releasePointScore} color="var(--accent-blue)" />
+                                            <MetricCard label="Arm Smoothness" value={report.bowlingMetrics.armSmoothnessScore ?? '—'} unit="pts" score={report.bowlingMetrics.armSmoothnessScore} color="var(--accent-blue)" />
+                                            <MetricCard label="Wrist at Release" value={report.bowlingMetrics.wristPositionScore ?? '—'} unit="pts" score={report.bowlingMetrics.wristPositionScore} color="var(--accent-blue)" />
+                                            <MetricCard label="Balance at Release" value={report.bowlingMetrics.balanceScore ?? '—'} unit="pts" score={report.bowlingMetrics.balanceScore} color="var(--accent-blue)" />
+                                            <MetricCard label="Elbow at Release" value={report.bowlingMetrics.releaseArmAngle?.toFixed(0) ?? '—'} unit="°" color="var(--accent-blue)" />
+                                            <MetricCard label="Bowler" value={report.bowlingMetrics.bowlingStyle || '—'} color="var(--accent-gold)" />
                                         </div>
                                         
-                                        {/* Enhanced Speed Gauge */}
+                                        {report.bowlingMetrics.releasePointNote && (
+                                            <div style={{ marginTop: 20, padding: '14px 20px', background: 'rgba(59,130,246,0.06)', borderRadius: 12, border: '1px solid rgba(59,130,246,0.2)', fontSize: 14 }}>
+                                                <strong>Release:</strong> {report.bowlingMetrics.releasePointNote}
+                                            </div>
+                                        )}
+
+                                        {/* Speed: only shown when the ball was actually tracked */}
+                                        {report.bowlingMetrics.estimatedBallSpeed ? (
                                         <div style={{ marginTop: 24, padding: 28, background: 'linear-gradient(145deg, rgba(16,185,129,0.08), rgba(16,185,129,0.02))', borderRadius: 20, border: '1px solid var(--border-green)', display: 'flex', alignItems: 'center', gap: 32, flexWrap: 'wrap' }}>
                                             <div style={{ textAlign: 'center', background: 'rgba(0,0,0,0.2)', padding: '20px 30px', borderRadius: 16, border: '1px solid rgba(16,185,129,0.2)' }}>
                                                 <div style={{ fontSize: 56, fontWeight: 900, color: 'var(--accent-green-bright)', lineHeight: 1 }}>{report.bowlingMetrics.estimatedBallSpeed || 0}</div>
@@ -252,17 +261,22 @@ export default function AnalysisPage() {
                                             <div style={{ flex: 1, minWidth: 280 }}>
                                                 <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 6 }}>Ball Speed Analysis</div>
                                                 <div style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                                                    {report.bowlingMetrics.releasePointNote || 'High-precision optical flow motion tracking across video sequence.'}
+                                                    {report.bowlingMetrics.speedClassification} — estimated by tracking the ball after release and scaling by the bowler&apos;s height. Approximate: assumes a side-on camera.
                                                  </div>
                                                 <div className="xp-bar-container" style={{ marginTop: 16, height: 12 }}>
                                                     <div className="xp-bar-fill" style={{ width: `${Math.min(100, ((report.bowlingMetrics.estimatedBallSpeed || 0) / 160) * 100)}%` }} />
                                                 </div>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-muted)', marginTop: 8, fontWeight: 700, letterSpacing: '0.05em' }}>
-                                                    <span>MIN (80 KM/H)</span>
+                                                    <span>0 KM/H</span>
                                                     <span>ELITE (160 KM/H)</span>
                                                 </div>
                                             </div>
                                         </div>
+                                        ) : (
+                                            <div style={{ marginTop: 20, padding: '14px 20px', background: 'rgba(255,255,255,0.03)', borderRadius: 12, border: '1px solid var(--border)', fontSize: 14, color: 'var(--text-secondary)' }}>
+                                                ⚡ <strong>Ball speed not measured</strong> — the ball wasn&apos;t tracked reliably after release. Film side-on with the ball visible for a few frames after it leaves the hand.
+                                            </div>
+                                        )}
                                     </div>
                                 )}
 
@@ -278,6 +292,22 @@ export default function AnalysisPage() {
                                             <MetricCard label="Knee Flexion" value={report.postureMetrics.kneeBendAngle?.toFixed(1) || '—'} unit="°" color="var(--accent-gold)" />
                                             <MetricCard label="Kinetic Balance" value={report.postureMetrics.balanceScore} unit="pts" score={report.postureMetrics.balanceScore} color="var(--accent-gold)" />
                                             <MetricCard label="Spinal Alignment" value={report.postureMetrics.spinePosScore} unit="pts" score={report.postureMetrics.spinePosScore} color="var(--accent-gold)" />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Detected faults (measured, with the value that triggered each) */}
+                                {Array.isArray(report.faultLog) && report.faultLog.length > 0 && (
+                                    <div className="card" style={{ padding: 24, marginBottom: 32, border: '1px solid rgba(239,68,68,0.25)' }}>
+                                        <h3 style={{ fontSize: 17, fontWeight: 800, marginBottom: 14 }}>🔍 Detected Technique Faults</h3>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                            {report.faultLog.map((f: any) => (
+                                                <div key={f.id} style={{ display: 'flex', gap: 12, alignItems: 'baseline', flexWrap: 'wrap' }}>
+                                                    <span style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', padding: '2px 8px', borderRadius: 6, background: f.severity === 'critical' ? 'rgba(239,68,68,0.15)' : f.severity === 'moderate' ? 'rgba(245,158,11,0.15)' : 'rgba(148,163,184,0.15)', color: f.severity === 'critical' ? '#ef4444' : f.severity === 'moderate' ? '#f59e0b' : '#94a3b8' }}>{f.severity}</span>
+                                                    <span style={{ fontWeight: 600 }}>{f.faultText}</span>
+                                                    <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{f.metric} = {f.value} (threshold {f.threshold})</span>
+                                                </div>
+                                            ))}
                                         </div>
                                     </div>
                                 )}
