@@ -1,294 +1,247 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
-import { ChevronRight, Play, Zap, Target, BarChart3, MessageCircle, Users, Star, Shield, Award, Menu, X, TrendingUp, CheckCircle } from 'lucide-react';
+import { ArrowRight, Menu, X, Target, Film, PersonStanding, Upload, ScanLine, ClipboardCheck, Check } from 'lucide-react';
+import { BrandMark, BrandName } from '@/components/Sidebar';
 
-const features = [
-  { icon: '🏏', color: '#22c55e', href: '/upload', title: 'Batting Analysis', desc: 'AI analyzes stance, swing angle, head position & timing frame-by-frame.', metrics: ['Bat Swing Angle', 'Head Position', 'Timing Score', 'Shot Type'] },
-  { icon: '⚡', color: '#6366f1', href: '/upload', title: 'Bowling Analysis', desc: 'Detects wrist position, arm rotation, release point & calculates ball speed.', metrics: ['Ball Speed km/h', 'Arm Rotation', 'Wrist Position', 'Bowling Style'] },
-  { icon: '📸', color: '#f97316', href: '/upload', title: 'Posture Analysis', desc: 'Analyze shoulder alignment, knee bend, balance from a single image.', metrics: ['Shoulder Alignment', 'Knee Bend Angle', 'Balance Score', 'Spine Position'] },
-  { icon: '📊', color: '#8b5cf6', href: '/progress', title: 'Progress Tracking', desc: 'Beautiful charts show your improvement over time with weekly breakdowns.', metrics: ['Weekly Progress', 'Skill Trends', 'KPI Charts', 'Comparison'] },
-  { icon: '🤖', color: '#ec4899', href: '/chatbot', title: 'AI Cricket Coach', desc: 'Chat with your personal AI coach 24/7. Get personalized drills & advice.', metrics: ['Batting Tips', 'Bowling Drills', 'Fitness Plans', 'Strategy'] },
-  { icon: '🏆', color: '#14b8a6', href: '/academy', title: 'Academy Mode', desc: 'Coaches can monitor all players, compare stats and assign drills.', metrics: ['Player Monitoring', 'Team Dashboard', 'Drills Assignment', 'Leaderboard'] },
+const MEASURES = [
+    {
+        icon: Target, title: 'Batting', lead: 'From trigger to follow-through.',
+        items: ['Front-foot timing into the swing', 'Head stability in the downswing', 'Balance at contact', 'Stride length and set-up stance', 'Follow-through and swing plane'],
+    },
+    {
+        icon: Film, title: 'Bowling', lead: 'The gather, the arc and the release.',
+        items: ['Release height and arm extension', 'Smoothness of the bowling arm', 'Wrist position at release', 'Balance over the front foot', 'Ball speed when the ball is tracked'],
+    },
+    {
+        icon: PersonStanding, title: 'Posture', lead: 'The ready position, from one photo.',
+        items: ['Shoulder alignment', 'Knee bend', 'Hip balance', 'Spine position'],
+    },
 ];
 
-
-
-const steps = [
-  { num: '01', icon: '📹', title: 'Upload Video', desc: 'Upload batting/bowling video or posture image in any format' },
-  { num: '02', icon: '🤖', title: 'AI Analyzes', desc: 'MediaPipe + OpenCV analyze 30 frames per second instantly' },
-  { num: '03', icon: '📊', title: 'Get Report', desc: 'Receive detailed performance metrics with actionable scores' },
-  { num: '04', icon: '🏏', title: 'Train Smarter', desc: 'Follow AI-recommended drills to improve fast' },
+const STEPS = [
+    { icon: Upload, title: 'Film one action', text: 'A single shot or delivery, side-on at hip height, whole body in frame. Your phone is enough.' },
+    { icon: ScanLine, title: 'We track 33 points', text: 'Every frame of the key moment is measured — joints, angles, timing — then checked against coaching thresholds.' },
+    { icon: ClipboardCheck, title: 'Train what matters', text: 'A scored report with the faults it found, the evidence for each, and the drills that fix them.' },
 ];
+
+const PLANS = [
+    { name: 'Starter', price: 'Free', period: 'forever', features: ['5 video analyses / month', 'Batting & bowling analysis', 'AI coach chat', 'Progress tracking'], cta: 'Get started', highlight: false },
+    { name: 'Pro', price: '₹799', period: '/ month', features: ['Unlimited analyses', 'Advanced metrics', 'Shot classification', 'Priority processing', 'PDF reports', 'Equipment picks'], cta: 'Start Pro trial', highlight: true },
+    { name: 'Academy', price: '₹2,999', period: '/ month', features: ['Everything in Pro', 'Up to 50 players', 'Coach dashboard', 'Leaderboard', 'CSV exports', 'Dedicated support'], cta: 'Contact sales', highlight: false },
+];
+
+const TICKER = ['Front-foot timing', 'Head stability', 'Balance at contact', 'Release height', 'Arm smoothness', 'Wrist position', 'Follow-through', 'Stride length', 'Swing plane', 'Knee drive'];
+
+// Clearly labelled illustration of a report — not a real player's data.
+const EXAMPLE = [
+    { label: 'Timing', value: 82, band: 'good' },
+    { label: 'Head stability', value: 74, band: 'fair' },
+    { label: 'Balance at contact', value: 88, band: 'good' },
+    { label: 'Follow-through', value: 61, band: 'fair' },
+];
+
+const NAV = [['How it works', '#how'], ['What we measure', '#measure'], ['Pricing', '#pricing']];
 
 export default function LandingPage() {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
+    const [menuOpen, setMenuOpen] = useState(false);
 
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
+    return (
+        <div style={{ background: 'var(--navy-1000)' }}>
+            {/* ── Nav ── */}
+            <nav className="site-nav">
+                <div className="container row-between">
+                    <Link href="/" className="row" style={{ gap: 10 }}><BrandMark size={32} /><BrandName /></Link>
+                    <div className="row hide-mobile" style={{ gap: 4 }}>
+                        {NAV.map(([label, href]) => <a key={href} href={href} className="btn btn-ghost btn-sm">{label}</a>)}
+                    </div>
+                    <div className="row" style={{ gap: 8 }}>
+                        <Link href="/login" className="btn btn-ghost btn-sm hide-mobile">Sign in</Link>
+                        <Link href="/register" className="btn btn-primary btn-sm">Get started</Link>
+                        <button className="btn btn-navy btn-icon btn-sm show-mobile" style={{ width: 34 }} onClick={() => setMenuOpen(!menuOpen)} aria-label={menuOpen ? 'Close menu' : 'Open menu'} aria-expanded={menuOpen}>
+                            {menuOpen ? <X size={18} /> : <Menu size={18} />}
+                        </button>
+                    </div>
+                </div>
+            </nav>
+            {menuOpen && (
+                <div className="show-mobile" style={{ position: 'fixed', top: 68, left: 0, right: 0, zIndex: 49, background: 'var(--navy-1000)', borderBottom: '1px solid var(--line)', padding: 16 }}>
+                    <div className="stack" style={{ gap: 4 }}>
+                        {NAV.map(([label, href]) => <a key={href} href={href} className="btn btn-ghost btn-full" style={{ justifyContent: 'flex-start' }} onClick={() => setMenuOpen(false)}>{label}</a>)}
+                        <Link href="/login" className="btn btn-secondary btn-full" style={{ marginTop: 8 }}>Sign in</Link>
+                    </div>
+                </div>
+            )}
 
-  return (
-    <div style={{ background: 'var(--bg-primary)', minHeight: '100vh' }}>
+            {/* ── Hero ── */}
+            <header className="hero pitch-stripes">
+                <div className="container" style={{ padding: 'clamp(56px, 9vw, 120px) clamp(16px, 4vw, 32px) clamp(64px, 9vw, 112px)' }}>
+                    <div className="hero-grid">
+                        <div className="rise">
+                            <div className="eyebrow">Cricket technique analysis</div>
+                            <h1 style={{ marginTop: 22 }}>Every shot.<br /><span style={{ color: 'var(--navy-300)' }}>Measured.</span></h1>
+                            <p className="lede" style={{ marginTop: 24, fontSize: 18 }}>
+                                Film one shot or one delivery on your phone. CrickBuddy tracks your body frame by frame and tells you exactly where the runs and wickets are being lost — with the drills to fix it.
+                            </p>
+                            <div className="row wrap" style={{ marginTop: 34, gap: 12 }}>
+                                <Link href="/register" className="btn btn-primary btn-xl">Analyse your first clip <ArrowRight size={18} /></Link>
+                                <a href="#how" className="btn btn-secondary btn-xl">See how it works</a>
+                            </div>
+                            <div className="row wrap muted small" style={{ marginTop: 28, gap: 22 }}>
+                                <span className="row" style={{ gap: 8 }}><Check size={15} /> Free to start</span>
+                                <span className="row" style={{ gap: 8 }}><Check size={15} /> Works with any phone video</span>
+                                <span className="row" style={{ gap: 8 }}><Check size={15} /> Batting, bowling & posture</span>
+                            </div>
+                        </div>
 
-      {/* ── Navbar ── */}
-      <nav style={{
-        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 200,
-        height: 64,
-        background: scrolled ? 'rgba(6,8,15,0.97)' : 'transparent',
-        backdropFilter: scrolled ? 'blur(20px)' : 'none',
-        borderBottom: scrolled ? '1px solid var(--border)' : '1px solid transparent',
-        transition: 'all 0.3s ease',
-        display: 'flex', alignItems: 'center',
-        padding: '0 clamp(16px, 4vw, 48px)',
-        justifyContent: 'space-between',
-      }}>
-        {/* Logo */}
-        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-          <div style={{ width: 38, height: 38, borderRadius: 10, background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-            <img src="/icon.png" alt="Crick Buddy" style={{ width: 32, height: 32, objectFit: 'contain' }} />
-          </div>
-          <span style={{ fontSize: 18, fontWeight: 800, color: '#fff', letterSpacing: '-0.01em' }}>Crick-Buddy</span>
-        </Link>
+                        {/* Example report card */}
+                        <div className="panel-black rise rise-2" style={{ padding: 0, boxShadow: 'var(--shadow-3)', overflow: 'hidden' }} aria-label="Example report">
+                            <div className="row-between wrap" style={{ padding: '16px 20px', borderBottom: '1px solid var(--line)', gap: 8 }}>
+                                <span className="label">Example report · Cover drive</span>
+                                <span className="badge badge-white">Batting</span>
+                            </div>
+                            <div className="crease" style={{ padding: '26px 20px 22px' }}>
+                                <div className="row" style={{ gap: 18, alignItems: 'flex-end' }}>
+                                    <div className="stat-value score-good" style={{ fontSize: 88, marginTop: 0 }}>81</div>
+                                    <div style={{ paddingBottom: 10 }}>
+                                        <div className="label">Overall</div>
+                                        <div style={{ fontWeight: 600 }}>Strong</div>
+                                    </div>
+                                </div>
+                                <div className="stack" style={{ gap: 14, marginTop: 22 }}>
+                                    {EXAMPLE.map(m => (
+                                        <div key={m.label}>
+                                            <div className="row-between small" style={{ marginBottom: 6 }}>
+                                                <span style={{ color: 'var(--text-2)' }}>{m.label}</span>
+                                                <span className="tnum" style={{ fontWeight: 600 }}>{m.value}</span>
+                                            </div>
+                                            <div className="stat-meter" style={{ marginTop: 0 }}><i className={m.band} style={{ width: `${m.value}%` }} /></div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                            <div style={{ padding: '14px 20px', borderTop: '1px solid var(--line)' }} className="small">
+                                <span className="badge badge-fair" style={{ marginRight: 10 }}>Fault</span>
+                                <span style={{ color: 'var(--text-2)' }}>Follow-through cut short — hands finish below the shoulder</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
 
-        {/* Desktop links */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 32 }} className="hide-mobile">
-          {['Features', 'How It Works', 'Pricing'].map(item => (
-            <a key={item} href={`#${item.toLowerCase().replace(/ /g, '-')}`}
-              style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, fontWeight: 500, textDecoration: 'none', transition: 'color 0.2s' }}
-              onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
-              onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.6)')}
-            >{item}</a>
-          ))}
-        </div>
+            {/* ── Ticker ── */}
+            <div className="section-black" style={{ borderTop: '1px solid var(--line)', borderBottom: '1px solid var(--line)', overflow: 'hidden', padding: '18px 0' }} aria-hidden>
+                <div className="ticker">
+                    {[...TICKER, ...TICKER].map((t, i) => (
+                        <span key={i} className="row" style={{ gap: 28, paddingRight: 28, fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: i % 2 ? 'var(--text-3)' : 'var(--text)', whiteSpace: 'nowrap' }}>
+                            {t}<span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--navy-500)' }} />
+                        </span>
+                    ))}
+                </div>
+            </div>
 
-        {/* Desktop CTA */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }} className="hide-mobile">
-          <Link href="/login" style={{ color: 'rgba(255,255,255,0.65)', fontSize: 14, fontWeight: 500, textDecoration: 'none', padding: '8px 16px' }}
-            onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
-            onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.65)')}>
-            Sign In
-          </Link>
-          <Link href="/register" className="btn btn-primary" style={{ fontSize: 14, padding: '9px 20px' }}>
-            Start Free <ChevronRight size={15} />
-          </Link>
-        </div>
+            {/* ── What we measure (light) ── */}
+            <section id="measure" className="section section-light">
+                <div className="container">
+                    <div style={{ maxWidth: 640 }}>
+                        <div className="eyebrow">What we measure</div>
+                        <h2 style={{ marginTop: 14, fontSize: 'clamp(34px, 5vw, 56px)' }}>The moments that decide the ball.</h2>
+                        <p className="lede" style={{ marginTop: 16 }}>Not a vague score. Each number comes from a specific moment in your clip — the front foot landing, the instant of release — and every fault shows the measurement behind it.</p>
+                    </div>
+                    <div className="grid-3" style={{ marginTop: 48, gap: 20 }}>
+                        {MEASURES.map(({ icon: Icon, title, lead, items }) => (
+                            <article key={title} style={{ background: '#FFFFFF', border: '1px solid #DCE4F3', borderRadius: 'var(--radius-lg)', padding: 28 }}>
+                                <span style={{ width: 46, height: 46, borderRadius: 12, display: 'grid', placeItems: 'center', background: '#0A1428', color: '#FFFFFF' }}><Icon size={21} /></span>
+                                <h3 style={{ marginTop: 20, fontSize: 28, color: '#0A1428' }}>{title}</h3>
+                                <p className="muted" style={{ marginTop: 4 }}>{lead}</p>
+                                <div style={{ height: 1, background: '#DCE4F3', margin: '20px 0' }} />
+                                <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                    {items.map(i => (
+                                        <li key={i} className="row" style={{ gap: 10, alignItems: 'flex-start', color: '#1C2F55', fontSize: 14.5 }}>
+                                            <Check size={16} style={{ flexShrink: 0, marginTop: 3 }} /> {i}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </article>
+                        ))}
+                    </div>
+                </div>
+            </section>
 
-        {/* Mobile hamburger */}
-        <button
-          onClick={() => setMenuOpen(!menuOpen)}
-          className="show-mobile"
-          style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: 8, padding: '8px', cursor: 'pointer', color: '#fff', display: 'flex', alignItems: 'center' }}
-          aria-label="Menu"
-        >
-          {menuOpen ? <X size={20} /> : <Menu size={20} />}
-        </button>
-      </nav>
+            {/* ── How it works ── */}
+            <section id="how" className="section" style={{ background: 'var(--navy-950)' }}>
+                <div className="container">
+                    <div className="row-between wrap" style={{ alignItems: 'flex-end', gap: 24 }}>
+                        <div>
+                            <div className="eyebrow">How it works</div>
+                            <h2 style={{ marginTop: 14, fontSize: 'clamp(34px, 5vw, 56px)' }}>Nets to notes in three steps.</h2>
+                        </div>
+                        <Link href="/register" className="btn btn-secondary btn-lg">Create a free account <ArrowRight size={17} /></Link>
+                    </div>
+                    <hr className="seam" style={{ margin: '40px 0' }} />
+                    <div className="grid-3" style={{ gap: 'clamp(20px, 3vw, 40px)' }}>
+                        {STEPS.map(({ icon: Icon, title, text }, i) => (
+                            <div key={title}>
+                                <div className="row" style={{ gap: 16, alignItems: 'baseline' }}>
+                                    <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 64, lineHeight: 0.8, color: 'var(--navy-600)' }}>0{i + 1}</span>
+                                    <Icon size={22} style={{ color: 'var(--navy-300)' }} />
+                                </div>
+                                <h3 style={{ marginTop: 20, fontSize: 24 }}>{title}</h3>
+                                <p style={{ marginTop: 10, color: 'var(--text-2)' }}>{text}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
 
-      {/* Mobile Menu */}
-      {menuOpen && (
-        <div style={{
-          position: 'fixed', top: 64, left: 0, right: 0, zIndex: 199,
-          background: 'rgba(6,8,15,0.98)', backdropFilter: 'blur(20px)',
-          borderBottom: '1px solid var(--border)',
-          padding: '16px 20px 24px',
-          animation: 'slideDown 0.2s ease',
-        }}>
-          {['Features', 'How It Works', 'Pricing'].map(item => (
-            <a key={item} href={`#${item.toLowerCase().replace(/ /g, '-')}`}
-              onClick={() => setMenuOpen(false)}
-              style={{ display: 'block', padding: '13px 4px', color: 'rgba(255,255,255,0.75)', fontSize: 16, fontWeight: 500, borderBottom: '1px solid var(--border)', textDecoration: 'none' }}>
-              {item}
-            </a>
-          ))}
-          <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
-            <Link href="/login" onClick={() => setMenuOpen(false)}
-              style={{ flex: 1, textAlign: 'center', padding: '12px', borderRadius: 10, border: '1px solid var(--border)', color: '#fff', textDecoration: 'none', fontSize: 15, fontWeight: 600 }}>
-              Sign In
-            </Link>
-            <Link href="/register" onClick={() => setMenuOpen(false)}
-              className="btn btn-primary"
-              style={{ flex: 1, justifyContent: 'center', padding: '12px', fontSize: 15 }}>
-              Start Free
-            </Link>
-          </div>
-        </div>
-      )}
+            {/* ── Pricing ── */}
+            <section id="pricing" className="section section-black">
+                <div className="container">
+                    <div style={{ textAlign: 'center', maxWidth: 560, margin: '0 auto' }}>
+                        <div className="eyebrow">Pricing</div>
+                        <h2 style={{ marginTop: 14, fontSize: 'clamp(34px, 5vw, 56px)' }}>Start free. Upgrade for the season.</h2>
+                    </div>
+                    <div className="grid-3" style={{ marginTop: 48, gap: 18, alignItems: 'stretch' }}>
+                        {PLANS.map(plan => (
+                            <div key={plan.name} className="card card-pad" style={{
+                                display: 'flex', flexDirection: 'column', gap: 18, padding: 28,
+                                background: plan.highlight ? 'var(--navy-850)' : 'var(--navy-900)',
+                                borderColor: plan.highlight ? 'var(--white)' : 'var(--line)',
+                            }}>
+                                <div className="row-between">
+                                    <h3 style={{ fontSize: 24 }}>{plan.name}</h3>
+                                    {plan.highlight && <span className="badge badge-white">Most popular</span>}
+                                </div>
+                                <div>
+                                    <span className="stat-value" style={{ fontSize: 52 }}>{plan.price}</span>
+                                    <span className="muted" style={{ marginLeft: 8 }}>{plan.period}</span>
+                                </div>
+                                <ul className="ticks" style={{ flex: 1 }}>{plan.features.map(f => <li key={f}>{f}</li>)}</ul>
+                                <Link href="/register" className={`btn ${plan.highlight ? 'btn-primary' : 'btn-secondary'} btn-lg btn-full`}>{plan.cta}</Link>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
 
-      {/* ── Hero ── */}
-      <section style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', position: 'relative', overflow: 'hidden', padding: 'clamp(100px,14vw,140px) clamp(20px,5vw,60px) clamp(60px,8vw,100px)' }}>
-        {/* Orbs */}
-        <div className="hero-orb" style={{ width: 600, height: 600, background: 'rgba(34,197,94,0.06)', top: '-10%', right: '-10%' }} />
-        <div className="hero-orb" style={{ width: 400, height: 400, background: 'rgba(99,102,241,0.05)', bottom: '5%', left: '-5%', animationDelay: '2s' }} />
-        <div className="hero-orb" style={{ width: 200, height: 200, background: 'rgba(249,115,22,0.04)', top: '40%', right: '30%', animationDelay: '1s' }} />
+            {/* ── Final CTA ── */}
+            <section className="hero pitch-stripes section">
+                <div className="container" style={{ textAlign: 'center' }}>
+                    <h2 style={{ fontSize: 'clamp(40px, 7vw, 84px)' }}>Your next net session<br /><span style={{ color: 'var(--navy-300)' }}>starts with the evidence.</span></h2>
+                    <Link href="/register" className="btn btn-primary btn-xl" style={{ marginTop: 36 }}>Get started free <ArrowRight size={18} /></Link>
+                </div>
+            </section>
 
-        <div style={{ maxWidth: 900, margin: '0 auto', textAlign: 'center', position: 'relative', zIndex: 1, width: '100%' }}>
-
-
-          <h1 style={{ fontSize: 'clamp(38px,7vw,80px)', fontWeight: 900, lineHeight: 1.05, marginBottom: 24, letterSpacing: '-0.02em' }}>
-            Your Cricket Coach<br />
-            <span style={{ background: 'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-              Level Up Your Game
-            </span>
-          </h1>
-
-          <p style={{ fontSize: 'clamp(16px,2.2vw,20px)', color: 'rgba(255,255,255,0.55)', maxWidth: 600, margin: '0 auto 40px', lineHeight: 1.75 }}>
-            Upload your batting or bowling video. Get a professional performance report with actionable drills in under 2 minutes.
-          </p>
-
-          <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 56 }}>
-            <Link href="/register" className="btn btn-primary btn-xl">
-              Analyze My Game <ChevronRight size={18} />
-            </Link>
-            <Link href="/login" className="btn btn-secondary btn-lg">
-              Watch Demo <Play size={16} />
-            </Link>
-          </div>
-
-
-        </div>
-      </section>
-
-      {/* ── Features ── */}
-      <section id="features" style={{ padding: 'clamp(60px,8vw,100px) clamp(20px,5vw,60px)', maxWidth: 1280, margin: '0 auto' }}>
-        <div style={{ textAlign: 'center', marginBottom: 56 }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: '#22c55e', textTransform: 'uppercase', letterSpacing: '0.1em' }}>What You Get</span>
-          <h2 style={{ fontSize: 'clamp(28px,5vw,48px)', fontWeight: 900, marginTop: 10, marginBottom: 14, letterSpacing: '-0.02em' }}>
-            Everything to Dominate<br />the Pitch
-          </h2>
-          <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 17, maxWidth: 560, margin: '0 auto' }}>
-            Professional-grade AI analysis tools used by players and coaches worldwide.
-          </p>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(340px,100%), 1fr))', gap: 20 }}>
-          {features.map(f => (
-            <Link key={f.title} href={f.href} style={{ textDecoration: 'none' }}>
-              <div className="card card-interactive" style={{ padding: 24, height: '100%', cursor: 'pointer' }}>
-                <div style={{ fontSize: 36, marginBottom: 16 }}>{f.icon}</div>
-                <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 10, color: '#fff' }}>{f.title}</h3>
-                <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, lineHeight: 1.7, marginBottom: 16 }}>{f.desc}</p>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
-                  {f.metrics.map(m => (
-                    <span key={m} style={{ fontSize: 11, fontWeight: 600, color: f.color, background: `${f.color}14`, padding: '3px 10px', borderRadius: 20, border: `1px solid ${f.color}28` }}>
-                      {m}
+            {/* ── Footer ── */}
+            <footer style={{ borderTop: '1px solid var(--line)', padding: '28px 0' }}>
+                <div className="container row-between wrap muted small" style={{ gap: 16 }}>
+                    <span className="row" style={{ gap: 10 }}><BrandMark size={24} /> © {new Date().getFullYear()} CrickBuddy</span>
+                    <span className="row" style={{ gap: 18 }}>
+                        <a href="#measure">What we measure</a><a href="#pricing">Pricing</a><Link href="/login">Sign in</Link>
                     </span>
-                  ))}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: f.color, fontSize: 13, fontWeight: 700 }}>
-                  Explore <ChevronRight size={14} />
-                </div>
-              </div>
-            </Link>
-          ))}
+            </footer>
         </div>
-      </section>
-
-      {/* ── How It Works ── */}
-      <section id="how-it-works" style={{ padding: 'clamp(60px,8vw,100px) clamp(20px,5vw,60px)', background: 'rgba(255,255,255,0.02)', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
-        <div style={{ maxWidth: 1000, margin: '0 auto', textAlign: 'center' }}>
-          <h2 style={{ fontSize: 'clamp(26px,4vw,42px)', fontWeight: 900, marginBottom: 52, letterSpacing: '-0.02em' }}>How It Works</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(200px,100%), 1fr))', gap: 36 }}>
-            {steps.map((step, i) => (
-              <div key={step.num} style={{ position: 'relative' }}>
-                {i < steps.length - 1 && (
-                  <div className="hide-mobile" style={{ position: 'absolute', top: 28, left: '60%', right: '-40%', height: 2, background: 'linear-gradient(90deg, rgba(34,197,94,0.3), transparent)' }} />
-                )}
-                <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(34,197,94,0.1)', border: '2px solid rgba(34,197,94,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: 26 }}>
-                  {step.icon}
-                </div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#22c55e', letterSpacing: '0.1em', marginBottom: 8 }}>{step.num}</div>
-                <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 8 }}>{step.title}</h3>
-                <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 13, lineHeight: 1.65 }}>{step.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-
-
-      {/* ── Pricing ── */}
-      <section id="pricing" style={{ padding: 'clamp(60px,8vw,100px) clamp(20px,5vw,60px)', background: 'rgba(255,255,255,0.02)', borderTop: '1px solid var(--border)' }}>
-        <div style={{ maxWidth: 1080, margin: '0 auto', textAlign: 'center' }}>
-          <h2 style={{ fontSize: 'clamp(26px,4vw,42px)', fontWeight: 900, marginBottom: 12, letterSpacing: '-0.02em' }}>Simple, Fair Pricing</h2>
-          <p style={{ color: 'rgba(255,255,255,0.45)', marginBottom: 52, fontSize: 17 }}>Start free. No credit card required.</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(290px,100%), 1fr))', gap: 24, alignItems: 'start' }}>
-            {[
-              { name: 'Starter', price: 'Free', period: 'forever', features: ['5 video analyses/mo', 'Batting & bowling analysis', 'AI Coach Chat', 'Progress tracking'], cta: 'Get Started Free', highlight: false, color: '#22c55e' },
-              { name: 'Pro', price: '₹799', period: '/month', features: ['Unlimited analyses', 'Advanced metrics', 'Shot classification', 'Priority processing', 'PDF reports', 'Equipment picks'], cta: 'Start Pro Trial', highlight: true, color: '#6366f1' },
-              { name: 'Academy', price: '₹2,999', period: '/month', features: ['Everything in Pro', 'Up to 50 players', 'Coach dashboard', 'Leaderboard', 'CSV exports', 'Dedicated support'], cta: 'Contact Sales', highlight: false, color: '#f97316' },
-            ].map(plan => (
-              <div key={plan.name} className="card" style={{
-                padding: '28px 24px', textAlign: 'left',
-                border: plan.highlight ? `1px solid rgba(99,102,241,0.4)` : undefined,
-                background: plan.highlight ? 'linear-gradient(145deg, #111626, #0e1230)' : undefined,
-                position: 'relative',
-                transform: plan.highlight ? 'scale(1.03)' : undefined,
-              }}>
-                {plan.highlight && (
-                  <div style={{ position: 'absolute', top: -13, left: '50%', transform: 'translateX(-50%)', background: 'var(--gradient-blue)', color: '#fff', fontSize: 11, fontWeight: 800, padding: '4px 16px', borderRadius: 20 }}>
-                    🔥 MOST POPULAR
-                  </div>
-                )}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                  <div style={{ width: 10, height: 10, borderRadius: '50%', background: plan.color }} />
-                  <div style={{ fontWeight: 800, fontSize: 17 }}>{plan.name}</div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 22 }}>
-                  <span style={{ fontSize: 38, fontWeight: 900, color: plan.highlight ? '#818cf8' : '#fff' }}>{plan.price}</span>
-                  <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>{plan.period}</span>
-                </div>
-                <ul style={{ listStyle: 'none', marginBottom: 24 }}>
-                  {plan.features.map(f => (
-                    <li key={f} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, color: 'rgba(255,255,255,0.7)', marginBottom: 10 }}>
-                      <CheckCircle size={15} color={plan.color} style={{ flexShrink: 0 }} />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                <Link href="/register" className={`btn ${plan.highlight ? 'btn-secondary' : 'btn-ghost'} btn-full`}
-                  style={{ justifyContent: 'center', borderColor: plan.highlight ? '#6366f1' : undefined, color: plan.highlight ? '#818cf8' : undefined }}>
-                  {plan.cta}
-                </Link>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── CTA ── */}
-      <section style={{ padding: 'clamp(80px,10vw,120px) clamp(20px,5vw,60px)', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
-        <div className="hero-orb" style={{ width: 500, height: 500, background: 'rgba(34,197,94,0.06)', top: '-20%', left: '50%', transform: 'translateX(-50%)' }} />
-        <div style={{ maxWidth: 680, margin: '0 auto', position: 'relative', zIndex: 1 }}>
-          <div style={{ fontSize: 56, marginBottom: 20 }}>🏆</div>
-          <h2 style={{ fontSize: 'clamp(28px,5vw,52px)', fontWeight: 900, marginBottom: 18, letterSpacing: '-0.02em' }}>
-            Ready to Transform<br />Your Cricket?
-          </h2>
-          <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 18, marginBottom: 40, lineHeight: 1.7 }}>
-            Join thousands of players and academies using AI to analyze, improve and dominate.
-          </p>
-          <Link href="/register" className="btn btn-primary btn-xl">
-            Analyze My Game — It's Free <ChevronRight size={20} />
-          </Link>
-        </div>
-      </section>
-
-      {/* ── Footer ── */}
-      <footer style={{ borderTop: '1px solid var(--border)', padding: '36px clamp(20px,5vw,60px)', textAlign: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 14 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-            <img src="/icon.png" alt="Crick Buddy" style={{ width: 26, height: 26, objectFit: 'contain' }} />
-          </div>
-          <span style={{ fontWeight: 800, fontSize: 15 }}>Crick-Buddy Cricket AI</span>
-        </div>
-        <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: 13 }}>
-          © 2026 Crick-Buddy · Your Digital Cricket Partner
-        </p>
-      </footer>
-    </div>
-  );
+    );
 }

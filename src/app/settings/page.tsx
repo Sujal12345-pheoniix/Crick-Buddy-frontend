@@ -3,9 +3,21 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Sidebar from '@/components/Sidebar';
+import { PageHeader } from '@/components/ui';
 import { usersAPI } from '@/lib/api';
 import { Save, Loader, Key } from 'lucide-react';
 import toast from 'react-hot-toast';
+
+const PLAYER_TYPES = [
+    { value: 'batsman', label: 'Batsman' }, { value: 'bowler', label: 'Bowler' },
+    { value: 'all-rounder', label: 'All-Rounder' }, { value: 'wicket-keeper', label: 'WK-Batsman' },
+];
+const EXPERIENCE = [
+    { value: 'beginner', label: 'Beginner' }, { value: 'intermediate', label: 'Intermediate' }, { value: 'professional', label: 'Professional' },
+];
+const BATTING = [
+    { value: 'right-handed', label: 'Right-Handed' }, { value: 'left-handed', label: 'Left-Handed' },
+];
 
 export default function SettingsPage() {
     const { user, updateUser } = useAuth();
@@ -50,84 +62,99 @@ export default function SettingsPage() {
         } finally { setPwLoading(false); }
     };
 
-    const Field = ({ label, name, type = 'text', placeholder, value, onChange }: any) => (
-        <div style={{ marginBottom: 16 }}>
-            <label className="input-label">{label}</label>
-            <input className="input" type={type} name={name} placeholder={placeholder} value={value} onChange={onChange} />
-        </div>
-    );
-
-    const Select = ({ label, name, options, value, onChange }: any) => (
-        <div style={{ marginBottom: 16 }}>
-            <label className="input-label">{label}</label>
-            <select className="input" name={name} value={value} onChange={onChange} style={{ cursor: 'pointer' }}>
-                {options.map((o: any) => <option key={o.value} value={o.value}>{o.label}</option>)}
+    const select = (id: string, label: string, name: keyof typeof form, options: { value: string; label: string }[]) => (
+        <div className="field">
+            <label className="input-label" htmlFor={id}>{label}</label>
+            <select id={id} className="input" name={name} value={form[name]} onChange={handleChange}>
+                {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
         </div>
     );
 
     return (
-        <div style={{ display: 'flex' }}>
+        <div className="app">
             <Sidebar />
-            <main className="main-content" style={{ padding: '32px 40px' }}>
-                <div style={{ marginBottom: 32 }}>
-                    <h1 style={{ fontSize: 28, fontWeight: 800, marginBottom: 8 }}>Settings ⚙️</h1>
-                    <p style={{ color: 'rgba(255,255,255,0.45)' }}>Manage your profile and account settings</p>
-                </div>
+            <main className="main-content">
+                <div className="page">
+                    <PageHeader
+                        eyebrow="Account"
+                        title="Settings"
+                        description="Your profile shapes every analysis and drill — keep it current."
+                    />
 
-                <div style={{ maxWidth: 600, display: 'flex', flexDirection: 'column', gap: 24 }}>
-                    {/* Profile */}
-                    <div className="card" style={{ padding: 28 }}>
-                        <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 24 }}>Profile Information</h2>
-                        <form onSubmit={handleSave}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
-                                <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'linear-gradient(135deg, #00ff88, #00c864)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 900, color: '#0a0e1a' }}>
+                    <div className="split rise rise-1">
+                        {/* Profile */}
+                        <section className="card card-pad" aria-labelledby="profile-heading">
+                            <div className="card-head">
+                                <h3 id="profile-heading">Profile</h3>
+                            </div>
+
+                            <div className="panel-black row" style={{ padding: 16, gap: 16, marginBottom: 22 }}>
+                                <span className="avatar" style={{ width: 56, height: 56, fontSize: 24 }} aria-hidden="true">
                                     {user?.name?.charAt(0).toUpperCase()}
+                                </span>
+                                <div style={{ minWidth: 0, flex: 1 }}>
+                                    <div style={{ fontWeight: 600, fontSize: 17, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.name}</div>
+                                    <div className="muted small" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.email}</div>
                                 </div>
-                                <div>
-                                    <div style={{ fontWeight: 700, fontSize: 18 }}>{user?.name}</div>
-                                    <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 13 }}>{user?.email}</div>
-                                    <div style={{ color: '#00ff88', fontSize: 12, fontWeight: 600, textTransform: 'capitalize', marginTop: 3 }}>{user?.role}</div>
-                                </div>
+                                {user?.role && <span className="badge badge-white">{user.role}</span>}
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                                <div style={{ gridColumn: '1/-1' }}>
-                                    <Field label="Full Name" name="name" value={form.name} onChange={handleChange} />
+                            <form onSubmit={handleSave}>
+                                <div className="grid-2" style={{ gap: 16 }}>
+                                    <div className="field" style={{ gridColumn: '1 / -1' }}>
+                                        <label className="input-label" htmlFor="set-name">Full name</label>
+                                        <input id="set-name" className="input" type="text" name="name" value={form.name} onChange={handleChange} autoComplete="name" />
+                                    </div>
+                                    <div className="field">
+                                        <label className="input-label" htmlFor="set-phone">Phone</label>
+                                        <input id="set-phone" className="input" type="text" name="phone" placeholder="+91 98765 43210" value={form.phone} onChange={handleChange} autoComplete="tel" inputMode="tel" />
+                                    </div>
+                                    {select('set-playerType', 'Player type', 'playerType', PLAYER_TYPES)}
+                                    {select('set-experience', 'Experience level', 'experienceLevel', EXPERIENCE)}
+                                    {select('set-batting', 'Batting style', 'battingStyle', BATTING)}
                                 </div>
-                                <Field label="Phone" name="phone" placeholder="+91 98765 43210" value={form.phone} onChange={handleChange} />
-                                <Select label="Player Type" name="playerType" value={form.playerType} onChange={handleChange} options={[
-                                    { value: 'batsman', label: 'Batsman' }, { value: 'bowler', label: 'Bowler' },
-                                    { value: 'all-rounder', label: 'All-Rounder' }, { value: 'wicket-keeper', label: 'WK-Batsman' }
-                                ]} />
-                                <Select label="Experience Level" name="experienceLevel" value={form.experienceLevel} onChange={handleChange} options={[
-                                    { value: 'beginner', label: '🌱 Beginner' }, { value: 'intermediate', label: '⚡ Intermediate' }, { value: 'professional', label: '🌟 Professional' }
-                                ]} />
-                                <Select label="Batting Style" name="battingStyle" value={form.battingStyle} onChange={handleChange} options={[
-                                    { value: 'right-handed', label: 'Right-Handed' }, { value: 'left-handed', label: 'Left-Handed' }
-                                ]} />
+
+                                <div className="row" style={{ marginTop: 24 }}>
+                                    <button type="submit" className="btn btn-primary" disabled={loading}>
+                                        {loading ? <Loader size={16} className="animate-spin" /> : <Save size={16} />}
+                                        {loading ? 'Saving…' : 'Save changes'}
+                                    </button>
+                                </div>
+                            </form>
+                        </section>
+
+                        {/* Password */}
+                        <section className="card card-pad" aria-labelledby="password-heading">
+                            <div className="card-head">
+                                <h3 id="password-heading">Change password</h3>
+                                <span className="muted" style={{ display: 'inline-flex' }} aria-hidden="true"><Key size={17} /></span>
                             </div>
+                            <p className="muted small" style={{ marginBottom: 20 }}>Use at least six characters, and nothing you use elsewhere.</p>
 
-                            <button type="submit" className="btn-primary" style={{ justifyContent: 'center', padding: '12px 32px' }} disabled={loading}>
-                                {loading ? <Loader size={16} style={{ animation: 'spin-slow 0.8s linear infinite' }} /> : <Save size={16} />}
-                                {loading ? 'Saving...' : 'Save Changes'}
-                            </button>
-                        </form>
-                    </div>
-
-                    {/* Password */}
-                    <div className="card" style={{ padding: 28 }}>
-                        <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 24, display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <Key size={18} /> Change Password
-                        </h2>
-                        <form onSubmit={handlePwChange}>
-                            <Field label="Current Password" name="currentPassword" type="password" placeholder="Current password" value={pw.currentPassword} onChange={(e: any) => setPw(p => ({ ...p, currentPassword: e.target.value }))} />
-                            <Field label="New Password" name="newPassword" type="password" placeholder="Min 6 characters" value={pw.newPassword} onChange={(e: any) => setPw(p => ({ ...p, newPassword: e.target.value }))} />
-                            <Field label="Confirm Password" name="confirmPassword" type="password" placeholder="Repeat new password" value={pw.confirmPassword} onChange={(e: any) => setPw(p => ({ ...p, confirmPassword: e.target.value }))} />
-                            <button type="submit" className="btn-secondary" style={{ justifyContent: 'center', padding: '12px 32px' }} disabled={pwLoading}>
-                                {pwLoading ? 'Updating...' : 'Change Password'}
-                            </button>
-                        </form>
+                            <form onSubmit={handlePwChange} className="stack">
+                                <div className="field">
+                                    <label className="input-label" htmlFor="set-current">Current password</label>
+                                    <input id="set-current" className="input" type="password" name="currentPassword" placeholder="Current password" autoComplete="current-password"
+                                        value={pw.currentPassword} onChange={e => setPw(p => ({ ...p, currentPassword: e.target.value }))} />
+                                </div>
+                                <div className="field">
+                                    <label className="input-label" htmlFor="set-new">New password</label>
+                                    <input id="set-new" className="input" type="password" name="newPassword" placeholder="Min 6 characters" autoComplete="new-password"
+                                        value={pw.newPassword} onChange={e => setPw(p => ({ ...p, newPassword: e.target.value }))} />
+                                </div>
+                                <div className="field">
+                                    <label className="input-label" htmlFor="set-confirm">Confirm new password</label>
+                                    <input id="set-confirm" className="input" type="password" name="confirmPassword" placeholder="Repeat new password" autoComplete="new-password"
+                                        value={pw.confirmPassword} onChange={e => setPw(p => ({ ...p, confirmPassword: e.target.value }))} />
+                                </div>
+                                <div className="row" style={{ marginTop: 8 }}>
+                                    <button type="submit" className="btn btn-secondary" disabled={pwLoading}>
+                                        {pwLoading ? 'Updating…' : 'Update password'}
+                                    </button>
+                                </div>
+                            </form>
+                        </section>
                     </div>
                 </div>
             </main>

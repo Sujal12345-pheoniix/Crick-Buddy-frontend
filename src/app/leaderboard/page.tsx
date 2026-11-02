@@ -3,8 +3,22 @@
 import { useEffect, useState } from 'react';
 import Sidebar from '@/components/Sidebar';
 import { academyAPI } from '@/lib/api';
-import { ScoreBadge, LoadingSpinner, EmptyState } from '@/components/ui';
+import { LoadingSpinner, EmptyState, PageHeader, scoreBand } from '@/components/ui';
 import { Trophy } from 'lucide-react';
+
+const initial = (name?: string) => (name?.trim().charAt(0) || '?').toUpperCase();
+const hasScore = (v: any) => typeof v === 'number' && !Number.isNaN(v);
+
+/** Display-type score, coloured by band. */
+function Score({ value, size = 26 }: { value: any; size?: number }) {
+    const shown = hasScore(value) ? Math.round(value) : null;
+    const band = scoreBand(shown);
+    return (
+        <span className={`stat-value ${band ? `score-${band}` : 'muted'}`} style={{ fontSize: size, marginTop: 0, display: 'inline-block' }}>
+            {shown ?? '—'}
+        </span>
+    );
+}
 
 export default function LeaderboardPage() {
     const [players, setPlayers] = useState<any[]>([]);
@@ -17,73 +31,94 @@ export default function LeaderboardPage() {
             .finally(() => setLoading(false));
     }, []);
 
-    const rankClass = (i: number) => i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : 'rank-other';
-    const medal = (i: number) => i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`;
+    const rankClass = (i: number) => i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : '';
+
+    // Podium order: second, first, third — first stands tallest in the middle.
+    const podium = players.length >= 3
+        ? [{ p: players[1], pos: 2, h: 92 }, { p: players[0], pos: 1, h: 132 }, { p: players[2], pos: 3, h: 64 }]
+        : [];
 
     return (
-        <div style={{ display: 'flex' }}>
+        <div className="app">
             <Sidebar />
-            <main className="main-content" style={{ padding: '32px 40px' }}>
-                <div style={{ marginBottom: 32 }}>
-                    <h1 style={{ fontSize: 28, fontWeight: 800, marginBottom: 8 }}>Leaderboard 🏆</h1>
-                    <p style={{ color: 'rgba(255,255,255,0.45)' }}>Top players ranked by overall AI performance score</p>
-                </div>
+            <main className="main-content">
+                <div className="page">
+                    <PageHeader
+                        eyebrow="Leaderboard"
+                        title="Player rankings"
+                        description="Every player ranked by overall technique score across their analysed clips."
+                    />
 
-                {loading ? <LoadingSpinner /> : players.length === 0 ? (
-                    <EmptyState icon="🏆" title="No rankings yet" description="Complete video analyses to appear on the leaderboard" />
-                ) : (
-                    <div style={{ maxWidth: 720 }}>
-                        {/* Top 3 podium */}
-                        {players.length >= 3 && (
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr 1fr', gap: 16, marginBottom: 32, alignItems: 'flex-end' }}>
-                                {[players[1], players[0], players[2]].map((p, vi) => {
-                                    const rank = vi === 0 ? 2 : vi === 1 ? 1 : 3;
-                                    const height = vi === 1 ? 160 : 110;
-                                    const color = rank === 1 ? '#f59e0b' : rank === 2 ? '#9ca3af' : '#cd7f32';
-                                    return (
-                                        <div key={p.id} style={{ textAlign: 'center' }}>
-                                            <div style={{ fontSize: 28, marginBottom: 8 }}>{rank === 1 ? '🥇' : rank === 2 ? '🥈' : '🥉'}</div>
-                                            <div style={{ width: 52, height: 52, borderRadius: '50%', background: `linear-gradient(135deg, ${color}, ${color}99)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 22, color: '#0a0e1a', margin: '0 auto 8px' }}>
-                                                {p.name?.charAt(0)}
+                    {loading ? <LoadingSpinner label="Loading rankings" /> : players.length === 0 ? (
+                        <section className="card rise rise-1">
+                            <EmptyState icon={<Trophy size={24} />} title="No rankings yet"
+                                description="Complete an analysis to take your place on the table." />
+                        </section>
+                    ) : (
+                        <>
+                            {/* Podium */}
+                            {podium.length === 3 && (
+                                <section className="panel-black pitch-stripes rise rise-1" style={{ padding: 'clamp(18px, 3vw, 32px) clamp(12px, 3vw, 32px) 0', marginBottom: 24, overflow: 'hidden' }}>
+                                    <div className="label" style={{ textAlign: 'center', marginBottom: 20 }}>Top of the table</div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.15fr 1fr', gap: 'clamp(8px, 2vw, 18px)', alignItems: 'end', maxWidth: 640, margin: '0 auto' }}>
+                                        {podium.map(({ p, pos, h }) => (
+                                            <div key={p.id} style={{ textAlign: 'center', minWidth: 0 }}>
+                                                <div className="avatar" style={{ margin: '0 auto 10px', width: pos === 1 ? 56 : 46, height: pos === 1 ? 56 : 46, fontSize: pos === 1 ? 24 : 19 }}>
+                                                    {initial(p.name)}
+                                                </div>
+                                                <div style={{ fontWeight: 600, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name?.split(' ')[0]}</div>
+                                                <div className="muted small" style={{ textTransform: 'capitalize', marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.playerType || '—'}</div>
+                                                <div style={{ marginBottom: 10 }}><Score value={p.totalReports ? p.overallScore : null} size={pos === 1 ? 36 : 28} /></div>
+                                                <div className={`rank rank-${pos}`} aria-label={`Position ${pos}`}
+                                                    style={{ width: '100%', height: h, borderRadius: '10px 10px 0 0', fontSize: pos === 1 ? 48 : 36, alignItems: 'start', paddingTop: 10 }}>
+                                                    {pos}
+                                                </div>
                                             </div>
-                                            <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 2 }}>{p.name?.split(' ')[0]}</div>
-                                            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', textTransform: 'capitalize', marginBottom: 8 }}>{p.playerType}</div>
-                                            <div style={{ height, background: `${color}20`, border: `2px solid ${color}40`, borderRadius: '8px 8px 0 0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                <div style={{ fontSize: 24, fontWeight: 900, color }}>{p.overallScore}</div>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        )}
+                                        ))}
+                                    </div>
+                                </section>
+                            )}
 
-                        {/* Full list */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                            {players.map((player: any, i: number) => (
-                                <div key={player.id} className="card" style={{
-                                    padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 16,
-                                    background: i < 3 ? 'linear-gradient(145deg, #141e36, #111829)' : undefined,
-                                    border: i === 0 ? '1px solid rgba(245,158,11,0.3)' : i === 1 ? '1px solid rgba(156,163,175,0.3)' : i === 2 ? '1px solid rgba(205,127,50,0.3)' : undefined
-                                }}>
-                                    <div className={`leaderboard-rank ${rankClass(i)}`}>{medal(i)}</div>
-                                    <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg, #00ff88, #00c864)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, color: '#0a0e1a', fontSize: 16 }}>
-                                        {player.name?.charAt(0)}
-                                    </div>
-                                    <div style={{ flex: 1 }}>
-                                        <div style={{ fontWeight: 700, fontSize: 15 }}>{player.name}</div>
-                                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', textTransform: 'capitalize' }}>
-                                            {player.playerType} · {player.experienceLevel}
-                                        </div>
-                                    </div>
-                                    <div style={{ textAlign: 'right' }}>
-                                        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginBottom: 4 }}>{player.totalReports} reports</div>
-                                        <ScoreBadge score={player.overallScore || 0} size="sm" />
-                                    </div>
+                            {/* Full table */}
+                            <section className="card rise rise-2" style={{ overflow: 'hidden' }}>
+                                <div className="table-scroll">
+                                    <table className="data-table">
+                                        <thead>
+                                            <tr>
+                                                <th style={{ width: 64 }}>Pos</th>
+                                                <th>Player</th>
+                                                <th className="hide-mobile">Level</th>
+                                                <th style={{ textAlign: 'right' }}>Analyses</th>
+                                                <th style={{ textAlign: 'right' }}>Score</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {players.map((player: any, i: number) => (
+                                                <tr key={player.id}>
+                                                    <td><span className={`rank ${rankClass(i)}`}>{i + 1}</span></td>
+                                                    <td>
+                                                        <div className="row" style={{ gap: 12, minWidth: 0 }}>
+                                                            <span className="avatar hide-mobile" style={{ width: 34, height: 34, fontSize: 15 }} aria-hidden="true">{initial(player.name)}</span>
+                                                            <div style={{ minWidth: 0 }}>
+                                                                <div style={{ fontWeight: 600, color: 'var(--text)' }}>{player.name}</div>
+                                                                <div className="muted small" style={{ textTransform: 'capitalize' }}>
+                                                                    {player.playerType || '—'}<span className="show-mobile"> · {player.experienceLevel}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td className="hide-mobile" style={{ textTransform: 'capitalize' }}>{player.experienceLevel || '—'}</td>
+                                                    <td className="tnum" style={{ textAlign: 'right' }}>{player.totalReports ?? 0}</td>
+                                                    <td style={{ textAlign: 'right' }}><Score value={player.totalReports ? player.overallScore : null} /></td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
                                 </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
+                            </section>
+                        </>
+                    )}
+                </div>
             </main>
         </div>
     );

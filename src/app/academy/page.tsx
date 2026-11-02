@@ -4,9 +4,27 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Sidebar from '@/components/Sidebar';
 import { academyAPI } from '@/lib/api';
-import { LoadingSpinner, ScoreBadge, EmptyState } from '@/components/ui';
-import { Users, Trophy, ChevronRight, Eye } from 'lucide-react';
+import { LoadingSpinner, EmptyState, PageHeader, scoreBand } from '@/components/ui';
+import { Users, Trophy, ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
+
+const initial = (name?: string) => (name?.trim().charAt(0) || '?').toUpperCase();
+const hasScore = (v: any) => typeof v === 'number' && !Number.isNaN(v);
+const fmtDate = (v: any) => {
+    const d = v ? new Date(v) : null;
+    return d && !Number.isNaN(d.getTime()) ? d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Never';
+};
+
+/** Display-type score, coloured by band. */
+function Score({ value, size = 26 }: { value: any; size?: number }) {
+    const shown = hasScore(value) ? Math.round(value) : null;
+    const band = scoreBand(shown);
+    return (
+        <span className={`stat-value ${band ? `score-${band}` : 'muted'}`} style={{ fontSize: size, marginTop: 0, display: 'inline-block' }}>
+            {shown ?? '—'}
+        </span>
+    );
+}
 
 export default function AcademyPage() {
     const { user } = useAuth();
@@ -27,112 +45,149 @@ export default function AcademyPage() {
         fetch();
     }, []);
 
-    const rankClass = (i: number) => i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : 'rank-other';
+    const rankClass = (i: number) => i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : '';
+
+    // Squad summary for the scoreboard strip (presentation only).
+    const latestScores = players.map(p => p.latestReport?.overallScore).filter(hasScore);
+    const squadAverage = latestScores.length ? Math.round(latestScores.reduce((a: number, b: number) => a + b, 0) / latestScores.length) : null;
+    const totalAnalyses = players.reduce((n: number, p: any) => n + (p.totalReports || 0), 0);
+    const board = [
+        { label: 'Players', value: players.length, band: '' },
+        { label: 'Analyses', value: totalAnalyses, band: '' },
+        { label: 'Squad average', value: squadAverage ?? '—', band: scoreBand(squadAverage) },
+    ];
+
+    const tabs = [
+        { key: 'players', icon: Users, label: 'Roster' },
+        { key: 'leaderboard', icon: Trophy, label: 'Leaderboard' },
+    ] as const;
 
     return (
-        <div style={{ display: 'flex' }}>
+        <div className="app">
             <Sidebar />
-            <main className="main-content" style={{ padding: '32px 40px' }}>
-                <div style={{ marginBottom: 32 }}>
-                    <h1 style={{ fontSize: 28, fontWeight: 800, marginBottom: 8 }}>Academy Mode 🎓</h1>
-                    <p style={{ color: 'rgba(255,255,255,0.45)' }}>
-                        {user?.role === 'coach' ? 'Monitor your players and track team progress' : 'View all players and leaderboard'}
-                    </p>
-                </div>
+            <main className="main-content">
+                <div className="page">
+                    <PageHeader
+                        eyebrow="Academy"
+                        title={user?.role === 'coach' ? 'Your squad' : 'Academy'}
+                        description={user?.role === 'coach' ? 'Monitor your players and track team progress.' : 'Every registered player and the academy rankings.'}
+                    />
 
-                {/* Tabs */}
-                <div style={{ display: 'flex', gap: 8, marginBottom: 28 }}>
-                    {[{ key: 'players', icon: <Users size={15} />, label: 'All Players' }, { key: 'leaderboard', icon: <Trophy size={15} />, label: 'Leaderboard' }].map(t => (
-                        <button key={t.key} onClick={() => setTab(t.key as any)} style={{
-                            padding: '8px 20px', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 14,
-                            border: `1.5px solid ${tab === t.key ? '#00ff88' : 'rgba(255,255,255,0.1)'}`,
-                            background: tab === t.key ? 'rgba(0,255,136,0.1)' : 'transparent',
-                            color: tab === t.key ? '#00ff88' : 'rgba(255,255,255,0.5)',
-                            display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.2s'
-                        }}>
-                            {t.icon} {t.label}
-                        </button>
-                    ))}
-                </div>
-
-                {loading ? <LoadingSpinner /> : tab === 'players' ? (
-                    <div className="card" style={{ overflow: 'hidden' }}>
-                        <table className="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Player</th>
-                                    <th>Type</th>
-                                    <th>Level</th>
-                                    <th>Reports</th>
-                                    <th>Latest Score</th>
-                                    <th>Last Active</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {players.length === 0 ? (
-                                    <tr><td colSpan={7} style={{ padding: 40, textAlign: 'center', color: 'rgba(255,255,255,0.35)' }}>
-                                        No players registered yet
-                                    </td></tr>
-                                ) : players.map((p: any) => (
-                                    <tr key={p.id}>
-                                        <td>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                                <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg, #00ff88, #00c864)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 15, color: '#0a0e1a', flexShrink: 0 }}>
-                                                    {p.name?.charAt(0).toUpperCase()}
-                                                </div>
-                                                <div>
-                                                    <div style={{ fontWeight: 600, fontSize: 14 }}>{p.name}</div>
-                                                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>{p.email}</div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td style={{ textTransform: 'capitalize', fontSize: 13 }}>{p.playerType}</td>
-                                        <td><span style={{ fontSize: 12, color: p.experienceLevel === 'professional' ? '#f59e0b' : p.experienceLevel === 'intermediate' ? '#3b82f6' : '#00ff88', textTransform: 'capitalize' }}>
-                                            {p.experienceLevel}
-                                        </span></td>
-                                        <td style={{ fontSize: 13 }}>{p.totalReports}</td>
-                                        <td><ScoreBadge score={p.latestReport?.overallScore || 0} size="sm" /></td>
-                                        <td style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>
-                                            {p.lastLogin ? new Date(p.lastLogin).toLocaleDateString() : 'Never'}
-                                        </td>
-                                        <td>
-                                            <Link href={`/academy/player/${p.id}`} style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#00ff88', textDecoration: 'none', fontSize: 13 }}>
-                                                <Eye size={14} /> View
-                                            </Link>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                ) : (
-                    /* Leaderboard */
-                    <div style={{ maxWidth: 700 }}>
-                        {leaderboard.map((player: any, i: number) => (
-                            <div key={player.id} className="card" style={{ padding: '16px 20px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 16, transition: 'all 0.2s' }}>
-                                <div className={`leaderboard-rank ${rankClass(i)}`}>{i + 1}</div>
-                                <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg, #00ff88, #00c864)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, color: '#0a0e1a' }}>
-                                    {player.name?.charAt(0).toUpperCase()}
-                                </div>
-                                <div style={{ flex: 1 }}>
-                                    <div style={{ fontWeight: 700, fontSize: 15 }}>{player.name}</div>
-                                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', textTransform: 'capitalize' }}>
-                                        {player.playerType} · {player.experienceLevel}
+                    {/* Scoreboard strip */}
+                    <section className="panel-black crease rise rise-1" style={{ padding: 0, overflow: 'hidden', marginBottom: 24 }}>
+                        <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 0 }}>
+                            {board.map((b, i) => (
+                                <div key={b.label} style={{ padding: '20px 22px', borderLeft: i ? '1px solid var(--line)' : 0 }}>
+                                    <div className="label">{b.label}</div>
+                                    <div className={`stat-value ${b.band ? `score-${b.band}` : ''}`} style={{ fontSize: 44 }}>
+                                        {loading ? <span className="skeleton" style={{ display: 'inline-block', width: 54, height: 36 }} /> : b.value}
                                     </div>
                                 </div>
-                                <ScoreBadge score={player.overallScore || 0} size="sm" />
-                                <div style={{ textAlign: 'right' }}>
-                                    <div style={{ fontSize: 13, fontWeight: 700, color: '#00ff88' }}>{player.totalReports}</div>
-                                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>reports</div>
-                                </div>
-                            </div>
+                            ))}
+                        </div>
+                    </section>
+
+                    {/* Tabs */}
+                    <div className="segmented rise rise-2" role="tablist" aria-label="Academy views" style={{ marginBottom: 20 }}>
+                        {tabs.map(t => (
+                            <button key={t.key} type="button" role="tab" aria-selected={tab === t.key}
+                                className={tab === t.key ? 'on' : ''} onClick={() => setTab(t.key)}>
+                                <t.icon size={15} /> {t.label}
+                            </button>
                         ))}
-                        {leaderboard.length === 0 && (
-                            <EmptyState icon="🏆" title="No rankings yet" description="Players will appear here once they complete analyses" />
-                        )}
                     </div>
-                )}
+
+                    {loading ? <LoadingSpinner label="Loading squad" /> : tab === 'players' ? (
+                        <section className="card rise rise-3" style={{ overflow: 'hidden' }}>
+                            {players.length === 0 ? (
+                                <EmptyState icon={<Users size={24} />} title="No players yet"
+                                    description="Players appear here as soon as they register." />
+                            ) : (
+                                <div className="table-scroll">
+                                    <table className="data-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Player</th>
+                                                <th>Role</th>
+                                                <th>Level</th>
+                                                <th style={{ textAlign: 'right' }}>Analyses</th>
+                                                <th style={{ textAlign: 'right' }}>Latest</th>
+                                                <th>Last active</th>
+                                                <th><span className="sr-only">Actions</span></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {players.map((p: any) => (
+                                                <tr key={p.id}>
+                                                    <td>
+                                                        <div className="row" style={{ gap: 12 }}>
+                                                            <span className="avatar" style={{ width: 34, height: 34, fontSize: 15 }} aria-hidden="true">{initial(p.name)}</span>
+                                                            <div style={{ minWidth: 0 }}>
+                                                                <div style={{ fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap' }}>{p.name}</div>
+                                                                <div className="muted small" style={{ whiteSpace: 'nowrap' }}>{p.email}</div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td style={{ textTransform: 'capitalize', whiteSpace: 'nowrap' }}>{p.playerType || '—'}</td>
+                                                    <td>{p.experienceLevel ? <span className="badge">{p.experienceLevel}</span> : <span className="muted">—</span>}</td>
+                                                    <td className="tnum" style={{ textAlign: 'right' }}>{p.totalReports ?? 0}</td>
+                                                    <td style={{ textAlign: 'right' }}><Score value={p.latestReport?.overallScore} /></td>
+                                                    <td className="muted small" style={{ whiteSpace: 'nowrap' }}>{fmtDate(p.lastLogin)}</td>
+                                                    <td style={{ textAlign: 'right' }}>
+                                                        <Link href={`/academy/player/${p.id}`} className="btn btn-ghost btn-sm" aria-label={`View ${p.name}`}>
+                                                            View <ArrowUpRight size={14} />
+                                                        </Link>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </section>
+                    ) : (
+                        /* Leaderboard */
+                        <section className="card rise rise-3" style={{ overflow: 'hidden' }}>
+                            {leaderboard.length === 0 ? (
+                                <EmptyState icon={<Trophy size={24} />} title="No rankings yet"
+                                    description="Players appear here once they complete an analysis." />
+                            ) : (
+                                <div className="table-scroll">
+                                    <table className="data-table">
+                                        <thead>
+                                            <tr>
+                                                <th style={{ width: 64 }}>Pos</th>
+                                                <th>Player</th>
+                                                <th style={{ textAlign: 'right' }}>Analyses</th>
+                                                <th style={{ textAlign: 'right' }}>Score</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {leaderboard.map((player: any, i: number) => (
+                                                <tr key={player.id}>
+                                                    <td><span className={`rank ${rankClass(i)}`}>{i + 1}</span></td>
+                                                    <td>
+                                                        <div className="row" style={{ gap: 12 }}>
+                                                            <span className="avatar hide-mobile" style={{ width: 34, height: 34, fontSize: 15 }} aria-hidden="true">{initial(player.name)}</span>
+                                                            <div style={{ minWidth: 0 }}>
+                                                                <div style={{ fontWeight: 600, color: 'var(--text)' }}>{player.name}</div>
+                                                                <div className="muted small" style={{ textTransform: 'capitalize' }}>
+                                                                    {player.playerType || '—'} · {player.experienceLevel || '—'}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td className="tnum" style={{ textAlign: 'right' }}>{player.totalReports ?? 0}</td>
+                                                    <td style={{ textAlign: 'right' }}><Score value={player.totalReports ? player.overallScore : null} /></td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </section>
+                    )}
+                </div>
             </main>
         </div>
     );

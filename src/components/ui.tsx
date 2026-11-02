@@ -3,114 +3,144 @@
 import React from 'react';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
+/** Score bands used everywhere a 0–100 score is coloured. */
+export function scoreBand(score?: number | null): 'good' | 'fair' | 'poor' | '' {
+    if (score === null || score === undefined || Number.isNaN(score)) return '';
+    return score >= 75 ? 'good' : score >= 55 ? 'fair' : 'poor';
+}
+
+export function scoreWord(score?: number | null): string {
+    const band = scoreBand(score);
+    return band === 'good' ? 'Strong' : band === 'fair' ? 'Developing' : band === 'poor' ? 'Needs work' : 'Not measured';
+}
+
 interface MetricCardProps {
     label: string;
-    value: string | number;
+    value: string | number | null | undefined;
     unit?: string;
-    score?: number;
+    score?: number | null;
     trend?: 'up' | 'down' | 'neutral';
     trendVal?: string;
+    /** Kept for compatibility; colour now comes from the score band. */
     color?: string;
     icon?: React.ReactNode;
+    note?: string;
 }
 
-export function MetricCard({ label, value, unit, score, trend, trendVal, color = '#00ff88', icon }: MetricCardProps) {
-    const trendIcon = trend === 'up' ? <TrendingUp size={12} /> : trend === 'down' ? <TrendingDown size={12} /> : <Minus size={12} />;
-    const trendColor = trend === 'up' ? '#00ff88' : trend === 'down' ? '#ff4757' : '#9ca3af';
-
+/** Scoreboard-style metric tile. */
+export function MetricCard({ label, value, unit, score, trend, trendVal, icon, note }: MetricCardProps) {
+    const shown = value === null || value === undefined || value === '' ? '—' : value;
+    const band = scoreBand(score);
+    const TrendIcon = trend === 'up' ? TrendingUp : trend === 'down' ? TrendingDown : Minus;
     return (
-        <div className="card" style={{ padding: '18px 20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                <span style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</span>
-                {icon && <div style={{ color }}>{icon}</div>}
+        <div className="stat">
+            <div className="label">
+                <span>{label}</span>
+                {icon && <span style={{ color: 'var(--text-3)', display: 'inline-flex' }}>{icon}</span>}
             </div>
-            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, marginBottom: score !== undefined ? 12 : 0 }}>
-                <span style={{ fontSize: 28, fontWeight: 800, color: '#fff', lineHeight: 1 }}>{value}</span>
-                {unit && <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', marginBottom: 3 }}>{unit}</span>}
+            <div className="stat-value">
+                {shown}
+                {unit && shown !== '—' && <span className="stat-unit">{unit}</span>}
             </div>
-            {score !== undefined && (
-                <div style={{ marginBottom: 8 }}>
-                    <div className="progress-bar">
-                        <div className="progress-fill" style={{ width: `${score}%`, background: `linear-gradient(90deg, ${color}, ${color}aa)` }} />
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
-                        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>Score</span>
-                        <span style={{ fontSize: 11, fontWeight: 700, color }}>{score}/100</span>
-                    </div>
-                </div>
+            {typeof score === 'number' && (
+                <div className="stat-meter"><i className={band} style={{ width: `${Math.max(2, Math.min(100, score))}%` }} /></div>
+            )}
+            {(note || typeof score === 'number') && (
+                <div className="stat-foot">{note ?? scoreWord(score)}</div>
             )}
             {trend && trendVal && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: trendColor, fontSize: 12 }}>
-                    {trendIcon}
-                    <span>{trendVal}</span>
+                <div className="stat-foot row" style={{ gap: 6, color: trend === 'up' ? 'var(--good)' : trend === 'down' ? 'var(--poor)' : 'var(--text-3)' }}>
+                    <TrendIcon size={13} /> {trendVal}
                 </div>
             )}
         </div>
     );
 }
 
-interface ScoreBadgeProps { score: number; size?: 'sm' | 'md' | 'lg'; }
-export function ScoreBadge({ score, size = 'md' }: ScoreBadgeProps) {
-    const s = size === 'sm' ? 56 : size === 'lg' ? 100 : 72;
-    const fs = size === 'sm' ? 16 : size === 'lg' ? 24 : 20;
-    const color = score >= 80 ? '#00ff88' : score >= 60 ? '#f59e0b' : '#ff4757';
+interface ScoreBadgeProps { score: number; size?: 'sm' | 'md' | 'lg' | 'xl'; caption?: string; }
 
+/** Circular score dial. */
+export function ScoreBadge({ score, size = 'md', caption = 'Score' }: ScoreBadgeProps) {
+    const px = { sm: 56, md: 76, lg: 112, xl: 148 }[size];
+    const stroke = size === 'sm' ? 5 : size === 'xl' ? 9 : 7;
+    const r = (px - stroke) / 2;
+    const c = 2 * Math.PI * r;
+    const value = Math.max(0, Math.min(100, Math.round(score || 0)));
+    const band = scoreBand(value);
+    const color = band === 'good' ? 'var(--good)' : band === 'fair' ? 'var(--fair)' : 'var(--poor)';
     return (
-        <div style={{
-            width: s, height: s, borderRadius: '50%',
-            background: `conic-gradient(${color} ${score * 3.6}deg, rgba(255,255,255,0.06) 0deg)`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            position: 'relative'
-        }}>
-            <div style={{
-                width: s - 8, height: s - 8, borderRadius: '50%',
-                background: '#111829', display: 'flex', alignItems: 'center',
-                justifyContent: 'center', flexDirection: 'column'
-            }}>
-                <span style={{ fontSize: fs, fontWeight: 900, color }}>{score}</span>
-                {size !== 'sm' && <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>SCORE</span>}
+        <div className="dial" style={{ width: px, height: px }} aria-label={`${caption} ${value} out of 100`}>
+            <svg width={px} height={px}>
+                <circle className="dial-track" cx={px / 2} cy={px / 2} r={r} fill="none" strokeWidth={stroke} />
+                <circle cx={px / 2} cy={px / 2} r={r} fill="none" stroke={color} strokeWidth={stroke} strokeLinecap="round"
+                    strokeDasharray={c} strokeDashoffset={c * (1 - value / 100)} style={{ transition: 'stroke-dashoffset 1s var(--ease)' }} />
+            </svg>
+            <div className="dial-value">
+                <div>
+                    <div className="dial-num" style={{ fontSize: px * 0.36 }}>{value}</div>
+                    {size !== 'sm' && <div className="dial-cap">{caption}</div>}
+                </div>
             </div>
         </div>
     );
 }
 
+const STATUS: Record<string, { cls: string; text: string }> = {
+    completed: { cls: 'badge-good', text: 'Completed' },
+    processing: { cls: 'badge-info', text: 'Analysing' },
+    pending: { cls: 'badge-fair', text: 'Queued' },
+    failed: { cls: 'badge-poor', text: 'Failed' },
+};
+
 export function StatusBadge({ status }: { status: string }) {
-    const map: Record<string, { cls: string; label: string }> = {
-        pending: { cls: 'badge-yellow', label: '⏳ Pending' },
-        processing: { cls: 'badge-blue', label: '⚙️ Processing' },
-        completed: { cls: 'badge-green', label: '✅ Completed' },
-        failed: { cls: 'badge-red', label: '❌ Failed' },
-    };
-    const { cls, label } = map[status] || { cls: 'badge-blue', label: status };
-    return <span className={`badge ${cls}`}>{label}</span>;
+    const s = STATUS[status] || { cls: '', text: status };
+    return <span className={`badge badge-dot ${s.cls}`}>{s.text}</span>;
 }
 
-export function LoadingSpinner({ size = 24 }: { size?: number }) {
+export function LoadingSpinner({ label }: { size?: number; label?: string }) {
     return (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '40px 0' }}>
-            <div style={{
-                width: size, height: size,
-                border: `2px solid rgba(0,255,136,0.2)`,
-                borderTop: `2px solid #00ff88`,
-                borderRadius: '50%',
-                animation: 'spin-slow 0.8s linear infinite'
-            }} />
+        <div className="empty" role="status">
+            <div className="spinner" />
+            {label && <div className="muted small">{label}</div>}
         </div>
     );
 }
 
 export function EmptyState({ icon, title, description, action }: {
-    icon: React.ReactNode;
-    title: string;
-    description: string;
-    action?: React.ReactNode;
+    icon: React.ReactNode; title: string; description: string; action?: React.ReactNode;
 }) {
     return (
-        <div style={{ textAlign: 'center', padding: '60px 24px' }}>
-            <div style={{ fontSize: 48, marginBottom: 16 }}>{icon}</div>
-            <h3 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>{title}</h3>
-            <p style={{ color: 'rgba(255,255,255,0.5)', marginBottom: 24, maxWidth: 400, margin: '0 auto 24px' }}>{description}</p>
-            {action}
+        <div className="empty">
+            <div className="empty-icon">{icon}</div>
+            <h3 style={{ fontSize: 18 }}>{title}</h3>
+            <p className="muted small" style={{ maxWidth: 340 }}>{description}</p>
+            {action && <div style={{ marginTop: 8 }}>{action}</div>}
+        </div>
+    );
+}
+
+/** Standard page heading: eyebrow, title, optional description and actions. */
+export function PageHeader({ eyebrow, title, description, actions }: {
+    eyebrow?: string; title: React.ReactNode; description?: React.ReactNode; actions?: React.ReactNode;
+}) {
+    return (
+        <header className="page-header rise">
+            <div>
+                {eyebrow && <div className="eyebrow">{eyebrow}</div>}
+                <h1>{title}</h1>
+                {description && <p className="lede">{description}</p>}
+            </div>
+            {actions && <div className="row wrap">{actions}</div>}
+        </header>
+    );
+}
+
+/** Shell for signed-in pages: sidebar + main column. */
+export function AppShell({ children, sidebar }: { children: React.ReactNode; sidebar: React.ReactNode }) {
+    return (
+        <div className="app">
+            {sidebar}
+            <main className="main-content"><div className="page">{children}</div></main>
         </div>
     );
 }

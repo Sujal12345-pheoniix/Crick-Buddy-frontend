@@ -4,8 +4,15 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { BrandMark, BrandName } from '@/components/Sidebar';
 import { Eye, EyeOff, Loader, ChevronRight } from 'lucide-react';
 import toast from 'react-hot-toast';
+
+const PROOF = [
+    'Bat path, head position and balance through every frame of the shot',
+    'Front-foot landing, arm path and release point for bowlers',
+    'A scored breakdown with drills that target what matters most',
+];
 
 export default function LoginPage() {
     const [email, setEmail] = useState('');
@@ -21,7 +28,7 @@ export default function LoginPage() {
         setLoading(true);
         try {
             const u = await login(email, password);
-            toast.success('Welcome back! 🏏');
+            toast.success('Welcome back');
             router.push(u?.role === 'admin' ? '/admin' : '/dashboard');
         } catch (err: any) {
             toast.error(err.response?.data?.message || 'Login failed');
@@ -29,66 +36,90 @@ export default function LoginPage() {
     };
 
     return (
-        <div style={{ minHeight: '100dvh', background: 'var(--bg-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, position: 'relative', overflow: 'hidden' }}>
-            {/* Background orbs */}
-            <div className="hero-orb" style={{ width: 500, height: 500, background: 'rgba(34,197,94,0.05)', top: '-10%', right: '-5%' }} />
-            <div className="hero-orb" style={{ width: 350, height: 350, background: 'rgba(99,102,241,0.04)', bottom: '-5%', left: '-5%', animationDelay: '2s' }} />
-
-            <div style={{ width: '100%', maxWidth: 440, position: 'relative', zIndex: 1 }}>
-                {/* Logo */}
-                <div style={{ textAlign: 'center', marginBottom: 36 }}>
-                    <Link href="/" style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: 12, textDecoration: 'none' }}>
-                        <div style={{ width: 64, height: 64, borderRadius: 18, background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.25)', boxShadow: '0 8px 32px rgba(34,197,94,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                            <img src="/icon.png" alt="Crick Buddy" style={{ width: 52, height: 52, objectFit: 'contain' }} />
-                        </div>
-                        <span style={{ fontSize: 22, fontWeight: 900, color: '#fff', letterSpacing: '-0.02em' }}>Crick-Buddy</span>
+        <div className="grid-2" style={{ minHeight: '100dvh', gap: 0, background: 'var(--navy-1000)' }}>
+            {/* Brand panel — desktop only */}
+            <aside className="hero hide-mobile" style={{ display: 'flex', borderRight: '1px solid var(--line)' }}>
+                <div className="pitch-stripes" aria-hidden="true" style={{ position: 'absolute', inset: 0 }} />
+                <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: 48, padding: 'clamp(32px, 5vw, 64px)', width: '100%' }}>
+                    <Link href="/" className="row" style={{ gap: 12 }} aria-label="CrickBuddy home">
+                        <BrandMark /><BrandName />
                     </Link>
-                    <p style={{ color: 'var(--text-muted)', fontSize: 14, marginTop: 6 }}>Sign in to your cricket dashboard</p>
-                </div>
 
-                <div className="card" style={{ padding: 'clamp(24px,5vw,36px)' }}>
-                    <h1 style={{ fontSize: 22, fontWeight: 800, marginBottom: 6, textAlign: 'center' }}>Welcome Back 🏏</h1>
-                    <p style={{ color: 'var(--text-muted)', fontSize: 13, textAlign: 'center', marginBottom: 28 }}>Continue your journey to cricket excellence</p>
-
-                    <form onSubmit={handleSubmit}>
-                        <div style={{ marginBottom: 18 }}>
-                            <label className="input-label">Email Address</label>
-                            <input className="input" type="email" placeholder="you@example.com" value={email}
-                                onChange={e => setEmail(e.target.value)} autoComplete="email" inputMode="email" />
-                        </div>
-
-                        <div style={{ marginBottom: 12, position: 'relative' }}>
-                            <label className="input-label">Password</label>
-                            <input className="input" type={showPw ? 'text' : 'password'} placeholder="Your password" value={password}
-                                onChange={e => setPassword(e.target.value)} style={{ paddingRight: 48 }} autoComplete="current-password" />
-                            <button type="button" onClick={() => setShowPw(!showPw)} style={{ position: 'absolute', right: 14, bottom: 13, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
-                                {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
-                            </button>
-                        </div>
-
-                        <div style={{ textAlign: 'right', marginBottom: 26 }}>
-                            <a href="#" style={{ color: '#22c55e', fontSize: 13, textDecoration: 'none', fontWeight: 600 }}>Forgot password?</a>
-                        </div>
-
-                        <button type="submit" className="btn btn-primary btn-full btn-lg" disabled={loading} style={{ justifyContent: 'center' }}>
-                            {loading ? <><Loader size={17} className="animate-spin" /> Signing in...</> : <>Sign In <ChevronRight size={17} /></>}
-                        </button>
-                    </form>
-
-                    <div style={{ textAlign: 'center', marginTop: 22, fontSize: 14, color: 'var(--text-muted)' }}>
-                        Don't have an account?{' '}
-                        <Link href="/register" style={{ color: '#22c55e', fontWeight: 700, textDecoration: 'none' }}>Create one free</Link>
+                    <div className="rise" style={{ maxWidth: 520 }}>
+                        <div className="eyebrow">Members&apos; pavilion</div>
+                        <h1 style={{ fontSize: 'clamp(40px, 5vw, 72px)', marginTop: 14 }}>Back to the nets.</h1>
+                        <p className="lede" style={{ marginTop: 16 }}>
+                            Pick up where you left off — your reports, drills and progress are waiting.
+                        </p>
+                        <hr className="seam" style={{ margin: '28px 0' }} />
+                        <div className="label" style={{ marginBottom: 14 }}>What every analysis measures</div>
+                        <ul className="ticks">
+                            {PROOF.map(p => <li key={p}>{p}</li>)}
+                        </ul>
                     </div>
-                </div>
 
-                {/* Demo credentials */}
-                <div style={{ textAlign: 'center', marginTop: 16 }}>
-                    <button onClick={() => { setEmail('demo@crickbuddy.com'); setPassword('demo123'); }}
-                        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', borderRadius: 8, padding: '9px 18px', color: 'var(--text-muted)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.2s' }}
-                        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.08)'; (e.currentTarget as HTMLButtonElement).style.color = '#fff'; }}
-                        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.04)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)'; }}>
-                        🎮 Try with demo credentials
-                    </button>
+                    <p className="muted small">Film side-on. Upload. Get a coach&apos;s read in minutes.</p>
+                </div>
+            </aside>
+
+            {/* Form */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'clamp(32px, 6vw, 64px) 16px' }}>
+                <div style={{ width: '100%', maxWidth: 440 }}>
+                    <div className="show-mobile">
+                        <div style={{ marginBottom: 28 }}>
+                            <Link href="/" className="row" style={{ gap: 12 }} aria-label="CrickBuddy home">
+                                <BrandMark /><BrandName />
+                            </Link>
+                        </div>
+                    </div>
+
+                    <div className="card card-raised rise rise-1" style={{ padding: 'clamp(24px, 5vw, 36px)' }}>
+                        <div className="eyebrow">Sign in</div>
+                        <h2 style={{ marginTop: 10 }}>Welcome back</h2>
+                        <p className="muted small" style={{ marginTop: 6, marginBottom: 26 }}>Sign in to your CrickBuddy account.</p>
+
+                        <form onSubmit={handleSubmit} className="stack" style={{ gap: 18 }}>
+                            <div className="field">
+                                <label className="input-label" htmlFor="login-email">Email address</label>
+                                <input id="login-email" className="input" type="email" placeholder="you@example.com" value={email}
+                                    onChange={e => setEmail(e.target.value)} autoComplete="email" inputMode="email" />
+                            </div>
+
+                            <div className="field">
+                                <div className="row-between">
+                                    <label className="input-label" htmlFor="login-password">Password</label>
+                                    <a href="#" className="link small muted">Forgot password?</a>
+                                </div>
+                                <div style={{ position: 'relative' }}>
+                                    <input id="login-password" className="input" type={showPw ? 'text' : 'password'} placeholder="Your password" value={password}
+                                        onChange={e => setPassword(e.target.value)} style={{ paddingRight: 52 }} autoComplete="current-password" />
+                                    <button type="button" className="btn btn-ghost btn-icon btn-sm" onClick={() => setShowPw(!showPw)}
+                                        aria-label={showPw ? 'Hide password' : 'Show password'} aria-pressed={showPw}
+                                        style={{ position: 'absolute', right: 6, top: 6 }}>
+                                        {showPw ? <EyeOff size={17} /> : <Eye size={17} />}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <button type="submit" className="btn btn-primary btn-full btn-lg" disabled={loading} style={{ marginTop: 6 }}>
+                                {loading ? <><Loader size={17} className="animate-spin" /> Signing in…</> : <>Sign in <ChevronRight size={17} /></>}
+                            </button>
+                        </form>
+
+                        <hr className="divider" />
+
+                        <p className="muted small" style={{ textAlign: 'center' }}>
+                            New to CrickBuddy?{' '}
+                            <Link href="/register" className="link" style={{ fontWeight: 600 }}>Create an account</Link>
+                        </p>
+                    </div>
+
+                    <div style={{ textAlign: 'center', marginTop: 16 }} className="rise rise-2">
+                        <button type="button" className="btn btn-ghost btn-sm"
+                            onClick={() => { setEmail('demo@crickbuddy.com'); setPassword('demo123'); }}>
+                            Try with demo credentials
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

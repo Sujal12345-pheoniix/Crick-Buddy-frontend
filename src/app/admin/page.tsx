@@ -1,33 +1,63 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import Sidebar from '@/components/Sidebar';
 import { adminAPI } from '@/lib/api';
-import { LoadingSpinner, ScoreBadge, StatusBadge } from '@/components/ui';
+import { LoadingSpinner, StatusBadge, EmptyState, PageHeader, scoreBand } from '@/components/ui';
 import {
-    Users, Upload, FileText, Database, Activity, Trash2, Edit,
-    Search, RefreshCw, Shield, TrendingUp, ChevronLeft, ChevronRight,
-    X, Save, AlertTriangle, BarChart3, Settings, Home, LogOut
+    Users, Database, Activity, Trash2, Edit, Search, RefreshCw,
+    ChevronLeft, ChevronRight, X, Save, AlertTriangle, Home, LogOut, Film, FileText, BarChart3
 } from 'lucide-react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
-import {
-    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-    PieChart, Pie, Cell, Legend
-} from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-// ─── Sidebar ────────────────────────────────────────────────────────────────
+// ─── Tabs ───────────────────────────────────────────────────────────────────
 const adminNav = [
-    { key: 'overview', icon: Home, label: 'Overview' },
-    { key: 'users', icon: Users, label: 'Users' },
-    { key: 'uploads', icon: Upload, label: 'Uploads' },
-    { key: 'reports', icon: FileText, label: 'Reports' },
-    { key: 'database', icon: Database, label: 'Database' },
-    { key: 'settings', icon: Settings, label: 'Settings' },
+    { key: 'overview', label: 'Overview' },
+    { key: 'users', label: 'Users' },
+    { key: 'uploads', label: 'Uploads' },
+    { key: 'reports', label: 'Reports' },
+    { key: 'database', label: 'Database' },
+    { key: 'settings', label: 'Settings' },
 ];
 
-const PIE_COLORS = ['#00ff88', '#3b82f6', '#f59e0b', '#ec4899', '#8b5cf6'];
+// Chart palette. Recharts draws SVG attributes, which cannot read CSS variables
+// reliably, so the design-system values are mirrored here (white, navy-300, line).
+const CHART = {
+    bar: '#FFFFFF',
+    axis: '#8AA2CF',
+    grid: 'rgba(255,255,255,0.08)',
+};
+
+const roleBadge = (role: string) => role === 'admin' ? 'badge badge-white' : role === 'coach' ? 'badge badge-info' : 'badge';
+const statusBand = (s: string) => s === 'completed' ? 'good' : s === 'failed' ? 'poor' : s === 'pending' ? 'fair' : '';
+const initial = (name?: string) => (name?.trim().charAt(0) || '?').toUpperCase();
+const fmtDate = (v: any) => {
+    const d = v ? new Date(v) : null;
+    return d && !Number.isNaN(d.getTime()) ? d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+};
+
+/** Shared overlay + dialog frame for the admin modals. */
+function Dialog({ labelledBy, onClose, maxWidth, children }: { labelledBy: string; onClose: () => void; maxWidth: number; children: ReactNode }) {
+    useEffect(() => {
+        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [onClose]);
+
+    return (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+            <div className="fade" style={{ position: 'absolute', inset: 0, background: 'var(--black)', opacity: 0.75, backdropFilter: 'blur(4px)' }} onClick={onClose} />
+            <div role="dialog" aria-modal="true" aria-labelledby={labelledBy} className="card card-raised card-pad rise"
+                style={{ position: 'relative', width: '100%', maxWidth, maxHeight: 'calc(100dvh - 32px)', overflowY: 'auto', borderColor: 'var(--line-2)' }}>
+                {children}
+            </div>
+        </div>
+    );
+}
 
 // ─── Edit User Modal ─────────────────────────────────────────────────────────
 function EditUserModal({ user, onClose, onSave }: { user: any; onClose: () => void; onSave: (u: any) => void }) {
@@ -46,57 +76,64 @@ function EditUserModal({ user, onClose, onSave }: { user: any; onClose: () => vo
     };
 
     return (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }} onClick={onClose} />
-            <div style={{ position: 'relative', background: '#111829', borderRadius: 16, padding: 32, width: 460, border: '1px solid rgba(255,255,255,0.1)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-                    <h3 style={{ fontSize: 18, fontWeight: 800 }}>Edit User</h3>
-                    <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', cursor: 'pointer' }}><X size={20} /></button>
+        <Dialog labelledBy="edit-user-title" onClose={onClose} maxWidth={480}>
+            <div className="row-between" style={{ marginBottom: 22 }}>
+                <div>
+                    <div className="eyebrow">Edit user</div>
+                    <h3 id="edit-user-title" style={{ marginTop: 8, fontSize: 22 }}>{user.name}</h3>
                 </div>
+                <button type="button" className="btn btn-ghost btn-sm btn-icon" style={{ width: 34 }} onClick={onClose} aria-label="Close">
+                    <X size={18} />
+                </button>
+            </div>
+            <div className="stack" style={{ gap: 14 }}>
                 {(['name', 'email'] as const).map(field => (
-                    <div key={field} style={{ marginBottom: 14 }}>
-                        <label className="input-label" style={{ textTransform: 'capitalize' }}>{field}</label>
-                        <input className="input" value={form[field]} onChange={e => setForm(p => ({ ...p, [field]: e.target.value }))} />
+                    <div key={field} className="field">
+                        <label className="input-label" htmlFor={`edit-${field}`} style={{ textTransform: 'capitalize' }}>{field}</label>
+                        <input id={`edit-${field}`} className="input" type={field === 'email' ? 'email' : 'text'} value={form[field]}
+                            onChange={e => setForm(p => ({ ...p, [field]: e.target.value }))} />
                     </div>
                 ))}
                 {[
                     { label: 'Role', key: 'role', opts: ['player', 'coach', 'admin'] },
                     { label: 'Experience', key: 'experienceLevel', opts: ['beginner', 'intermediate', 'professional'] },
-                    { label: 'Player Type', key: 'playerType', opts: ['batsman', 'bowler', 'all-rounder', 'wicket-keeper'] },
+                    { label: 'Player type', key: 'playerType', opts: ['batsman', 'bowler', 'all-rounder', 'wicket-keeper'] },
                 ].map(({ label, key, opts }) => (
-                    <div key={key} style={{ marginBottom: 14 }}>
-                        <label className="input-label">{label}</label>
-                        <select className="input" value={(form as any)[key]} onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))}>
+                    <div key={key} className="field">
+                        <label className="input-label" htmlFor={`edit-${key}`}>{label}</label>
+                        <select id={`edit-${key}`} className="input" value={(form as any)[key]} onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))}
+                            style={{ textTransform: 'capitalize' }}>
                             {opts.map(o => <option key={o} value={o}>{o}</option>)}
                         </select>
                     </div>
                 ))}
-                <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
-                    <button className="btn-primary" style={{ flex: 1, justifyContent: 'center' }} onClick={handleSave} disabled={loading}>
-                        {loading ? 'Saving...' : <><Save size={15} /> Save Changes</>}
-                    </button>
-                    <button className="btn-secondary" style={{ justifyContent: 'center', padding: '0 20px' }} onClick={onClose}>Cancel</button>
-                </div>
             </div>
-        </div>
+            <div className="row wrap" style={{ gap: 10, marginTop: 24 }}>
+                <button type="button" className="btn btn-primary" style={{ flex: '1 1 180px' }} onClick={handleSave} disabled={loading}>
+                    {loading ? 'Saving…' : <><Save size={15} /> Save changes</>}
+                </button>
+                <button type="button" className="btn btn-secondary" style={{ flex: '0 1 auto' }} onClick={onClose}>Cancel</button>
+            </div>
+        </Dialog>
     );
 }
 
 // ─── Confirm Delete Modal ────────────────────────────────────────────────────
 function ConfirmModal({ title, desc, onConfirm, onClose }: any) {
     return (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }} onClick={onClose} />
-            <div style={{ position: 'relative', background: '#111829', borderRadius: 16, padding: 32, width: 400, border: '1px solid rgba(255,71,87,0.3)', textAlign: 'center' }}>
-                <AlertTriangle size={40} color="#ff4757" style={{ marginBottom: 16 }} />
-                <h3 style={{ fontSize: 18, fontWeight: 800, marginBottom: 8 }}>{title}</h3>
-                <p style={{ color: 'rgba(255,255,255,0.5)', marginBottom: 24, fontSize: 14 }}>{desc}</p>
-                <div style={{ display: 'flex', gap: 10 }}>
-                    <button onClick={onConfirm} style={{ flex: 1, background: '#ff4757', border: 'none', borderRadius: 8, padding: '12px', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>Delete</button>
-                    <button onClick={onClose} className="btn-secondary" style={{ flex: 1, justifyContent: 'center' }}>Cancel</button>
-                </div>
+        <Dialog labelledBy="confirm-title" onClose={onClose} maxWidth={420}>
+            <span className="choice-icon" style={{ background: 'var(--poor-bg)', color: 'var(--poor)', marginBottom: 16 }}>
+                <AlertTriangle size={20} />
+            </span>
+            <h3 id="confirm-title" style={{ fontSize: 22, marginBottom: 8 }}>{title}</h3>
+            <p className="muted small" style={{ marginBottom: 24 }}>{desc}</p>
+            <div className="row wrap" style={{ gap: 10 }}>
+                <button type="button" className="btn btn-danger" style={{ flex: '1 1 140px' }} onClick={onConfirm}>
+                    <Trash2 size={15} /> Delete
+                </button>
+                <button type="button" className="btn btn-secondary" style={{ flex: '1 1 140px' }} onClick={onClose}>Cancel</button>
             </div>
-        </div>
+        </Dialog>
     );
 }
 
@@ -210,6 +247,32 @@ export default function AdminPage() {
         } catch { toast.error('Delete failed'); }
     };
 
+    // ─── Shared bits ──────────────────────────────────────────────────────────
+    const SectionHead = ({ title, onRefresh }: { title: string; onRefresh: () => void }) => (
+        <div className="card-head">
+            <h3>{title}</h3>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={onRefresh} aria-label={`Refresh ${title.toLowerCase()}`}>
+                <RefreshCw size={14} /> <span className="hide-mobile">Refresh</span>
+            </button>
+        </div>
+    );
+
+    const UserCell = ({ name, email }: { name?: string; email?: string }) => (
+        <div className="row" style={{ gap: 12 }}>
+            <span className="avatar" style={{ width: 34, height: 34, fontSize: 15 }} aria-hidden="true">{initial(name)}</span>
+            <div style={{ minWidth: 0 }}>
+                <div style={{ fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap' }}>{name || 'Deleted'}</div>
+                {email && <div className="muted small" style={{ whiteSpace: 'nowrap' }}>{email}</div>}
+            </div>
+        </div>
+    );
+
+    const DeleteButton = ({ onClick, label }: { onClick: () => void; label: string }) => (
+        <button type="button" className="btn btn-danger btn-sm" onClick={onClick} aria-label={label}>
+            <Trash2 size={13} /> <span className="hide-mobile">Delete</span>
+        </button>
+    );
+
     // ─── Overview Tab ──────────────────────────────────────────────────────────
     const OverviewTab = () => {
         if (!stats) return <LoadingSpinner />;
@@ -219,117 +282,127 @@ export default function AdminPage() {
             month: `${s._id.year}/${String(s._id.month).padStart(2, '0')}`,
             signups: s.count
         }));
+        const typeTotal = uploadsByType.reduce((n: number, t: any) => n + (t.value || 0), 0) || 1;
+
+        const board = [
+            { label: 'Total users', value: stats.totalUsers },
+            { label: 'Players', value: stats.players },
+            { label: 'Coaches', value: stats.coaches },
+            { label: 'Uploads', value: stats.totalUploads },
+            { label: 'Analysis rate', value: `${stats.processingRate}%`, band: scoreBand(Number(stats.processingRate)) },
+        ];
 
         return (
-            <div>
-                {/* KPI Cards */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 28 }}>
-                    {[
-                        { label: 'Total Users', value: stats.totalUsers, color: '#00ff88', icon: <Users size={20} /> },
-                        { label: 'Players', value: stats.players, color: '#3b82f6', icon: <Activity size={20} /> },
-                        { label: 'Coaches', value: stats.coaches, color: '#f59e0b', icon: <Shield size={20} /> },
-                        { label: 'Total Uploads', value: stats.totalUploads, color: '#8b5cf6', icon: <Upload size={20} /> },
-                        { label: 'Analysis Rate', value: `${stats.processingRate}%`, color: '#ec4899', icon: <TrendingUp size={20} /> },
-                    ].map(k => (
-                        <div key={k.label} className="card" style={{ padding: '16px 20px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
-                                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{k.label}</span>
-                                <div style={{ color: k.color }}>{k.icon}</div>
+            <div className="stack" style={{ gap: 20 }}>
+                {/* Scoreboard strip */}
+                <section className="panel-black crease rise rise-1" style={{ padding: 0, overflow: 'hidden' }}>
+                    <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 0 }}>
+                        {board.map((b, i) => (
+                            <div key={b.label} style={{ padding: '20px 22px', borderLeft: i ? '1px solid var(--line)' : 0 }}>
+                                <div className="label">{b.label}</div>
+                                <div className={`stat-value ${b.band ? `score-${b.band}` : ''}`} style={{ fontSize: 44 }}>{b.value ?? '—'}</div>
                             </div>
-                            <div style={{ fontSize: 28, fontWeight: 900, color: k.color }}>{k.value}</div>
-                        </div>
-                    ))}
-                </div>
+                        ))}
+                    </div>
+                </section>
 
                 {/* Charts row */}
-                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 20, marginBottom: 24 }}>
-                    {/* Signups over time */}
-                    <div className="card" style={{ padding: 24 }}>
-                        <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 20 }}>User Signups (Last 6 Months)</h3>
+                <div className="split rise rise-2">
+                    <section className="card card-pad">
+                        <div className="card-head">
+                            <h3>Sign-ups</h3>
+                            <span className="label">Last 6 months</span>
+                        </div>
                         {signupData.length === 0 ? (
-                            <div style={{ color: 'rgba(255,255,255,0.3)', textAlign: 'center', padding: 40 }}>No data yet</div>
+                            <EmptyState icon={<BarChart3 size={24} />} title="No data yet" description="Monthly sign-ups appear here once players register." />
                         ) : (
-                            <ResponsiveContainer width="100%" height={180}>
-                                <BarChart data={signupData}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                                    <XAxis dataKey="month" stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 11 }} />
-                                    <YAxis stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 11 }} />
-                                    <Tooltip contentStyle={{ background: '#161d30', border: '1px solid rgba(0,255,136,0.2)', borderRadius: 8, fontSize: 12 }} />
-                                    <Bar dataKey="signups" fill="#00ff88" radius={[4, 4, 0, 0]} />
+                            <ResponsiveContainer width="100%" height={220}>
+                                <BarChart data={signupData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                                    <CartesianGrid vertical={false} stroke={CHART.grid} />
+                                    <XAxis dataKey="month" stroke={CHART.axis} tick={{ fontSize: 11, fill: CHART.axis }} tickLine={false} axisLine={false} />
+                                    <YAxis allowDecimals={false} stroke={CHART.axis} tick={{ fontSize: 11, fill: CHART.axis }} tickLine={false} axisLine={false} />
+                                    <Tooltip cursor={{ fill: CHART.grid }}
+                                        contentStyle={{ background: 'var(--navy-850)', border: '1px solid var(--line-2)', borderRadius: 10, fontSize: 12 }}
+                                        labelStyle={{ color: 'var(--text-3)' }} itemStyle={{ color: 'var(--text)' }} />
+                                    <Bar dataKey="signups" name="Sign-ups" fill={CHART.bar} radius={[4, 4, 0, 0]} maxBarSize={36} />
                                 </BarChart>
                             </ResponsiveContainer>
                         )}
-                    </div>
+                    </section>
 
-                    {/* Uploads by type */}
-                    <div className="card" style={{ padding: 24 }}>
-                        <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 20 }}>Uploads by Type</h3>
-                        {uploadsByType.length === 0 ? (
-                            <div style={{ color: 'rgba(255,255,255,0.3)', textAlign: 'center', padding: 40 }}>No data yet</div>
-                        ) : (
-                            <ResponsiveContainer width="100%" height={180}>
-                                <PieChart>
-                                    <Pie data={uploadsByType} cx="50%" cy="50%" outerRadius={60} dataKey="value" label={({ name, value }) => `${name}: ${value}`} labelLine={false}>
-                                        {uploadsByType.map((_: any, i: number) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
-                                    </Pie>
-                                    <Tooltip contentStyle={{ background: '#161d30', borderRadius: 8, border: 'none', fontSize: 12 }} />
-                                </PieChart>
-                            </ResponsiveContainer>
-                        )}
-                    </div>
-
-                    {/* Uploads by status */}
-                    <div className="card" style={{ padding: 24 }}>
-                        <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 20 }}>By Status</h3>
-                        {uploadsByStatus.map((s: any, i: number) => (
-                            <div key={i} style={{ marginBottom: 12 }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 13 }}>
-                                    <span style={{ color: 'rgba(255,255,255,0.6)', textTransform: 'capitalize' }}>{s.name}</span>
-                                    <span style={{ fontWeight: 700, color: PIE_COLORS[i] }}>{s.value}</span>
-                                </div>
-                                <div style={{ height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 4 }}>
-                                    <div style={{ height: '100%', width: `${Math.min(100, (s.value / (stats.totalUploads || 1)) * 100)}%`, background: PIE_COLORS[i], borderRadius: 4 }} />
-                                </div>
+                    <section className="card card-pad">
+                        <div className="card-head"><h3>Uploads</h3></div>
+                        <div className="label" style={{ marginBottom: 12 }}>By type</div>
+                        {uploadsByType.length === 0 ? <p className="muted small">No uploads yet.</p> : (
+                            <div className="stack" style={{ gap: 14 }}>
+                                {uploadsByType.map((t: any) => (
+                                    <div key={t.name}>
+                                        <div className="row-between small">
+                                            <span style={{ textTransform: 'capitalize', color: 'var(--text-2)' }}>{t.name}</span>
+                                            <span className="tnum" style={{ fontWeight: 600 }}>{t.value}</span>
+                                        </div>
+                                        <div className="stat-meter" style={{ marginTop: 6 }}><i style={{ width: `${Math.max(2, (t.value / typeTotal) * 100)}%` }} /></div>
+                                    </div>
+                                ))}
                             </div>
-                        ))}
-                    </div>
+                        )}
+                        <hr className="divider" />
+                        <div className="label" style={{ marginBottom: 12 }}>By status</div>
+                        {uploadsByStatus.length === 0 ? <p className="muted small">No uploads yet.</p> : (
+                            <div className="stack" style={{ gap: 14 }}>
+                                {uploadsByStatus.map((s: any, i: number) => (
+                                    <div key={i}>
+                                        <div className="row-between small">
+                                            <StatusBadge status={s.name} />
+                                            <span className="tnum" style={{ fontWeight: 600 }}>{s.value}</span>
+                                        </div>
+                                        <div className="stat-meter" style={{ marginTop: 8 }}>
+                                            <i className={statusBand(s.name)} style={{ width: `${Math.min(100, (s.value / (stats.totalUploads || 1)) * 100)}%` }} />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </section>
                 </div>
 
                 {/* Recent activity */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-                    <div className="card" style={{ padding: 24 }}>
-                        <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16 }}>Recent Users</h3>
-                        {(stats.recentUsers || []).map((u: any) => (
-                            <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                                <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'linear-gradient(135deg, #00ff88, #00c864)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, color: '#0a0e1a', flexShrink: 0, fontSize: 14 }}>
-                                    {u.name?.charAt(0)}
-                                </div>
-                                <div style={{ flex: 1 }}>
-                                    <div style={{ fontSize: 13, fontWeight: 600 }}>{u.name}</div>
-                                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{u.email}</div>
-                                </div>
-                                <span style={{ fontSize: 11, background: u.role === 'admin' ? 'rgba(255,71,87,0.1)' : u.role === 'coach' ? 'rgba(245,158,11,0.1)' : 'rgba(0,255,136,0.1)', color: u.role === 'admin' ? '#ff4757' : u.role === 'coach' ? '#f59e0b' : '#00ff88', padding: '2px 8px', borderRadius: 20, fontWeight: 600, textTransform: 'capitalize' }}>
-                                    {u.role}
-                                </span>
+                <div className="grid-2 rise rise-3">
+                    <section className="card card-pad">
+                        <div className="card-head"><h3>Recent users</h3></div>
+                        {(stats.recentUsers || []).length === 0 ? <p className="muted small">No users yet.</p> : (
+                            <div className="list">
+                                {(stats.recentUsers || []).map((u: any) => (
+                                    <div key={u.id} className="list-item">
+                                        <span className="avatar" style={{ width: 34, height: 34, fontSize: 15 }} aria-hidden="true">{initial(u.name)}</span>
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div style={{ fontWeight: 600, fontSize: 14 }}>{u.name}</div>
+                                            <div className="muted small" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.email}</div>
+                                        </div>
+                                        <span className={roleBadge(u.role)}>{u.role}</span>
+                                    </div>
+                                ))}
                             </div>
-                        ))}
-                    </div>
+                        )}
+                    </section>
 
-                    <div className="card" style={{ padding: 24 }}>
-                        <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16 }}>Recent Uploads</h3>
-                        {(stats.recentUploads || []).map((u: any) => (
-                            <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                                <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(59,130,246,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>
-                                    {u.type === 'batting' ? '🏏' : u.type === 'bowling' ? '⚡' : '📸'}
-                                </div>
-                                <div style={{ flex: 1 }}>
-                                    <div style={{ fontSize: 13, fontWeight: 600, textTransform: 'capitalize' }}>{u.type} Analysis</div>
-                                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{u.user?.name || 'Unknown'}</div>
-                                </div>
-                                <StatusBadge status={u.status} />
+                    <section className="card card-pad">
+                        <div className="card-head"><h3>Recent uploads</h3></div>
+                        {(stats.recentUploads || []).length === 0 ? <p className="muted small">No uploads yet.</p> : (
+                            <div className="list">
+                                {(stats.recentUploads || []).map((u: any) => (
+                                    <div key={u.id} className="list-item">
+                                        <span className="choice-icon" style={{ width: 34, height: 34, borderRadius: 10 }}><Film size={16} /></span>
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div style={{ fontWeight: 600, fontSize: 14, textTransform: 'capitalize' }}>{u.type} analysis</div>
+                                            <div className="muted small" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.user?.name || 'Unknown'}</div>
+                                        </div>
+                                        <StatusBadge status={u.status} />
+                                    </div>
+                                ))}
                             </div>
-                        ))}
-                    </div>
+                        )}
+                    </section>
                 </div>
             </div>
         );
@@ -337,80 +410,70 @@ export default function AdminPage() {
 
     // ─── Users Tab ────────────────────────────────────────────────────────────
     const UsersTab = () => (
-        <div>
+        <div className="rise rise-1">
             {/* Toolbar */}
-            <div style={{ display: 'flex', gap: 12, marginBottom: 20, alignItems: 'center' }}>
-                <div style={{ position: 'relative', flex: 1 }}>
-                    <Search size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.35)' }} />
-                    <input className="input" placeholder="Search by name or email..." value={search}
+            <div className="row wrap" style={{ gap: 10, marginBottom: 16 }}>
+                <div style={{ position: 'relative', flex: '1 1 220px' }}>
+                    <label htmlFor="admin-user-search" className="sr-only">Search users</label>
+                    <Search size={16} aria-hidden="true" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-3)', pointerEvents: 'none' }} />
+                    <input id="admin-user-search" type="search" className="input" placeholder="Search by name or email" value={search}
                         onChange={e => { setSearch(e.target.value); setPage(1); }}
                         style={{ paddingLeft: 40 }} />
                 </div>
-                <select className="input" value={roleFilter} onChange={e => { setRoleFilter(e.target.value); setPage(1); }} style={{ width: 160, cursor: 'pointer' }}>
-                    <option value="">All Roles</option>
+                <label htmlFor="admin-role-filter" className="sr-only">Filter by role</label>
+                <select id="admin-role-filter" className="input" value={roleFilter} onChange={e => { setRoleFilter(e.target.value); setPage(1); }} style={{ flex: '1 1 140px', maxWidth: 200 }}>
+                    <option value="">All roles</option>
                     <option value="player">Player</option>
                     <option value="coach">Coach</option>
                     <option value="admin">Admin</option>
                 </select>
-                <button className="btn-secondary" onClick={fetchUsers} style={{ padding: '0 14px', flexShrink: 0 }}>
+                <button type="button" className="btn btn-secondary btn-icon" style={{ height: 46, width: 46 }} onClick={fetchUsers} aria-label="Refresh users">
                     <RefreshCw size={15} />
                 </button>
             </div>
 
             {loading ? <LoadingSpinner /> : (
                 <>
-                    <div className="card" style={{ overflow: 'hidden', marginBottom: 16 }}>
-                        <table className="data-table">
-                            <thead>
-                                <tr>
-                                    <th>User</th>
-                                    <th>Role</th>
-                                    <th>Level</th>
-                                    <th>Type</th>
-                                    <th>Joined</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {users.length === 0 ? (
-                                    <tr><td colSpan={6} style={{ textAlign: 'center', padding: 40, color: 'rgba(255,255,255,0.3)' }}>No users found</td></tr>
-                                ) : users.map((u: any) => (
-                                    <tr key={u.id}>
-                                        <td>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                                <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'linear-gradient(135deg, #00ff88, #00c864)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, color: '#0a0e1a', fontSize: 14, flexShrink: 0 }}>
-                                                    {u.name?.charAt(0)}
-                                                </div>
-                                                <div>
-                                                    <div style={{ fontSize: 13, fontWeight: 600 }}>{u.name}</div>
-                                                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{u.email}</div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <span style={{ fontSize: 11, background: u.role === 'admin' ? 'rgba(255,71,87,0.12)' : u.role === 'coach' ? 'rgba(245,158,11,0.12)' : 'rgba(0,255,136,0.12)', color: u.role === 'admin' ? '#ff4757' : u.role === 'coach' ? '#f59e0b' : '#00ff88', padding: '3px 10px', borderRadius: 20, fontWeight: 700, textTransform: 'capitalize' }}>
-                                                {u.role}
-                                            </span>
-                                        </td>
-                                        <td style={{ fontSize: 13, textTransform: 'capitalize', color: 'rgba(255,255,255,0.6)' }}>{u.experienceLevel}</td>
-                                        <td style={{ fontSize: 13, textTransform: 'capitalize', color: 'rgba(255,255,255,0.6)' }}>{u.playerType}</td>
-                                        <td style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>{new Date(u.createdAt).toLocaleDateString()}</td>
-                                        <td>
-                                            <div style={{ display: 'flex', gap: 8 }}>
-                                                <button onClick={() => setEditUser(u)} style={{ background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: 6, padding: '5px 10px', color: '#3b82f6', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
-                                                    <Edit size={12} /> Edit
-                                                </button>
-                                                <button onClick={() => setDeleteTarget({ id: u.id, type: 'user', name: u.name })} style={{ background: 'rgba(255,71,87,0.1)', border: '1px solid rgba(255,71,87,0.3)', borderRadius: 6, padding: '5px 10px', color: '#ff4757', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
-                                                    <Trash2 size={12} /> Del
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                    <Pagination/>
+                    <section className="card" style={{ overflow: 'hidden', marginBottom: 16 }}>
+                        {users.length === 0 ? (
+                            <EmptyState icon={<Users size={24} />} title="No users found" description="Try a different name, email or role." />
+                        ) : (
+                            <div className="table-scroll">
+                                <table className="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>User</th>
+                                            <th>Role</th>
+                                            <th>Level</th>
+                                            <th>Type</th>
+                                            <th>Joined</th>
+                                            <th style={{ textAlign: 'right' }}>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {users.map((u: any) => (
+                                            <tr key={u.id}>
+                                                <td><UserCell name={u.name} email={u.email} /></td>
+                                                <td><span className={roleBadge(u.role)}>{u.role}</span></td>
+                                                <td style={{ textTransform: 'capitalize' }}>{u.experienceLevel || '—'}</td>
+                                                <td style={{ textTransform: 'capitalize', whiteSpace: 'nowrap' }}>{u.playerType || '—'}</td>
+                                                <td className="muted small" style={{ whiteSpace: 'nowrap' }}>{fmtDate(u.createdAt)}</td>
+                                                <td>
+                                                    <div className="row" style={{ gap: 8, justifyContent: 'flex-end' }}>
+                                                        <button type="button" className="btn btn-navy btn-sm" onClick={() => setEditUser(u)} aria-label={`Edit ${u.name}`}>
+                                                            <Edit size={13} /> <span className="hide-mobile">Edit</span>
+                                                        </button>
+                                                        <DeleteButton label={`Delete ${u.name}`} onClick={() => setDeleteTarget({ id: u.id, type: 'user', name: u.name })} />
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </section>
+                    <Pagination />
                 </>
             )}
         </div>
@@ -418,127 +481,130 @@ export default function AdminPage() {
 
     // ─── Uploads Tab ──────────────────────────────────────────────────────────
     const UploadsTab = () => (
-        <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
-                <h3 style={{ fontSize: 16, fontWeight: 700 }}>All Uploads</h3>
-                <button className="btn-secondary" onClick={fetchUploads}><RefreshCw size={15} /></button>
-            </div>
+        <section className="card card-pad rise rise-1">
+            <SectionHead title="All uploads" onRefresh={fetchUploads} />
             {loading ? <LoadingSpinner /> : (
                 <>
-                    <div className="card" style={{ overflow: 'hidden', marginBottom: 16 }}>
-                        <table className="data-table">
-                            <thead>
-                                <tr><th>File</th><th>User</th><th>Type</th><th>Status</th><th>Date</th><th>Action</th></tr>
-                            </thead>
-                            <tbody>
-                                {uploads.length === 0 ? (
-                                    <tr><td colSpan={6} style={{ textAlign: 'center', padding: 40, color: 'rgba(255,255,255,0.3)' }}>No uploads</td></tr>
-                                ) : uploads.map((u: any) => (
-                                    <tr key={u.id}>
-                                        <td style={{ fontSize: 13, maxWidth: 220 }}>
-                                            <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.originalName || u.filename}</div>
-                                            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>{u.id}</div>
-                                        </td>
-                                        <td>
-                                            <div style={{ fontSize: 13, fontWeight: 600 }}>{u.user?.name || 'Deleted'}</div>
-                                            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{u.user?.email}</div>
-                                        </td>
-                                        <td>
-                                            <span style={{ fontSize: 12, textTransform: 'capitalize' }}>
-                                                {u.type === 'batting' ? '🏏' : u.type === 'bowling' ? '⚡' : '📸'} {u.type}
-                                            </span>
-                                        </td>
-                                        <td><StatusBadge status={u.status} /></td>
-                                        <td style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>{new Date(u.createdAt).toLocaleDateString()}</td>
-                                        <td>
-                                            <button onClick={() => setDeleteTarget({ id: u.id, type: 'upload', name: u.originalName })} style={{ background: 'rgba(255,71,87,0.1)', border: '1px solid rgba(255,71,87,0.3)', borderRadius: 6, padding: '5px 10px', color: '#ff4757', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
-                                                <Trash2 size={12} /> Delete
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                    {uploads.length === 0 ? (
+                        <EmptyState icon={<Film size={24} />} title="No uploads" description="Clips appear here as soon as players upload them." />
+                    ) : (
+                        <div className="table-scroll" style={{ margin: '0 -16px 16px' }}>
+                            <table className="data-table">
+                                <thead>
+                                    <tr><th>File</th><th>User</th><th>Type</th><th>Status</th><th>Date</th><th style={{ textAlign: 'right' }}>Action</th></tr>
+                                </thead>
+                                <tbody>
+                                    {uploads.map((u: any) => (
+                                        <tr key={u.id}>
+                                            <td style={{ maxWidth: 240 }}>
+                                                <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text)', fontWeight: 500 }}>{u.originalName || u.filename}</div>
+                                                <div className="muted" style={{ fontSize: 11, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.id}</div>
+                                            </td>
+                                            <td>
+                                                <div style={{ fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap' }}>{u.user?.name || 'Deleted'}</div>
+                                                <div className="muted small" style={{ whiteSpace: 'nowrap' }}>{u.user?.email}</div>
+                                            </td>
+                                            <td style={{ textTransform: 'capitalize' }}>{u.type}</td>
+                                            <td><StatusBadge status={u.status} /></td>
+                                            <td className="muted small" style={{ whiteSpace: 'nowrap' }}>{fmtDate(u.createdAt)}</td>
+                                            <td style={{ textAlign: 'right' }}>
+                                                <DeleteButton label={`Delete ${u.originalName || 'upload'}`} onClick={() => setDeleteTarget({ id: u.id, type: 'upload', name: u.originalName })} />
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
                     <Pagination />
                 </>
             )}
-        </div>
+        </section>
     );
 
     // ─── Reports Tab ──────────────────────────────────────────────────────────
     const ReportsTab = () => (
-        <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
-                <h3 style={{ fontSize: 16, fontWeight: 700 }}>All Analysis Reports</h3>
-                <button className="btn-secondary" onClick={fetchReports}><RefreshCw size={15} /></button>
-            </div>
+        <section className="card card-pad rise rise-1">
+            <SectionHead title="Analysis reports" onRefresh={fetchReports} />
             {loading ? <LoadingSpinner /> : (
                 <>
-                    <div className="card" style={{ overflow: 'hidden', marginBottom: 16 }}>
-                        <table className="data-table">
-                            <thead>
-                                <tr><th>Player</th><th>Type</th><th>Score</th><th>Date</th><th>Action</th></tr>
-                            </thead>
-                            <tbody>
-                                {reports.length === 0 ? (
-                                    <tr><td colSpan={5} style={{ textAlign: 'center', padding: 40, color: 'rgba(255,255,255,0.3)' }}>No reports</td></tr>
-                                ) : reports.map((r: any) => (
-                                    <tr key={r.id}>
-                                        <td>
-                                            <div style={{ fontSize: 13, fontWeight: 600 }}>{r.user?.name || 'Deleted'}</div>
-                                            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{r.user?.email}</div>
-                                        </td>
-                                        <td style={{ fontSize: 13, textTransform: 'capitalize' }}>
-                                            {r.type === 'batting' ? '🏏' : r.type === 'bowling' ? '⚡' : '📸'} {r.type}
-                                        </td>
-                                        <td><ScoreBadge score={r.overallScore || 0} size="sm" /></td>
-                                        <td style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>{new Date(r.createdAt).toLocaleDateString()}</td>
-                                        <td>
-                                            <button onClick={() => setDeleteTarget({ id: r.id, type: 'report', name: `${r.type} report` })} style={{ background: 'rgba(255,71,87,0.1)', border: '1px solid rgba(255,71,87,0.3)', borderRadius: 6, padding: '5px 10px', color: '#ff4757', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
-                                                <Trash2 size={12} /> Delete
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                    {reports.length === 0 ? (
+                        <EmptyState icon={<FileText size={24} />} title="No reports" description="Reports appear here once analyses complete." />
+                    ) : (
+                        <div className="table-scroll" style={{ margin: '0 -16px 16px' }}>
+                            <table className="data-table">
+                                <thead>
+                                    <tr><th>Player</th><th>Type</th><th style={{ textAlign: 'right' }}>Score</th><th>Date</th><th style={{ textAlign: 'right' }}>Action</th></tr>
+                                </thead>
+                                <tbody>
+                                    {reports.map((r: any) => {
+                                        const band = scoreBand(r.overallScore);
+                                        return (
+                                            <tr key={r.id}>
+                                                <td><UserCell name={r.user?.name} email={r.user?.email} /></td>
+                                                <td style={{ textTransform: 'capitalize' }}>{r.type}</td>
+                                                <td style={{ textAlign: 'right' }}>
+                                                    <span className={`stat-value ${band ? `score-${band}` : 'muted'}`} style={{ fontSize: 26, marginTop: 0, display: 'inline-block' }}>
+                                                        {typeof r.overallScore === 'number' ? Math.round(r.overallScore) : '—'}
+                                                    </span>
+                                                </td>
+                                                <td className="muted small" style={{ whiteSpace: 'nowrap' }}>{fmtDate(r.createdAt)}</td>
+                                                <td style={{ textAlign: 'right' }}>
+                                                    <DeleteButton label={`Delete ${r.type} report`} onClick={() => setDeleteTarget({ id: r.id, type: 'report', name: `${r.type} report` })} />
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
                     <Pagination />
                 </>
             )}
-        </div>
+        </section>
     );
 
     // ─── Database Tab ─────────────────────────────────────────────────────────
     const DatabaseTab = () => (
-        <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
-                <h3 style={{ fontSize: 16, fontWeight: 700 }}>📦 PostgreSQL Tables</h3>
-                <button className="btn-secondary" onClick={fetchCollections}><RefreshCw size={15} /></button>
+        <div className="rise rise-1">
+            <div className="row-between" style={{ marginBottom: 16 }}>
+                <h3>PostgreSQL tables</h3>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={fetchCollections} aria-label="Refresh tables">
+                    <RefreshCw size={14} /> <span className="hide-mobile">Refresh</span>
+                </button>
             </div>
             {loading ? <LoadingSpinner /> : (
                 <>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16 }}>
-                        {collections.map(c => (
-                            <div key={c.name} className="card" style={{ padding: 20 }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                                    <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>{c.name}</span>
-                                    <Database size={16} color="#00ff88" />
+                    {collections.length === 0 ? (
+                        <section className="card">
+                            <EmptyState icon={<Database size={24} />} title="No tables reported" description="The API returned no table counts." />
+                        </section>
+                    ) : (
+                        <div className="grid-auto">
+                            {collections.map(c => (
+                                <div key={c.name} className="stat">
+                                    <div className="label">
+                                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</span>
+                                        <Database size={14} aria-hidden="true" />
+                                    </div>
+                                    <div className="stat-value">{c.count}</div>
+                                    <div className="stat-foot">Records</div>
                                 </div>
-                                <div style={{ fontSize: 24, fontWeight: 900 }}>{c.count}</div>
-                                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 4 }}>Records tracked</div>
-                            </div>
-                        ))}
-                    </div>
-
-                    <div style={{ marginTop: 28, padding: '16px 20px', background: 'rgba(0,255,136,0.05)', border: '1px solid rgba(0,255,136,0.15)', borderRadius: 10 }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: '#00ff88', marginBottom: 6 }}>Connection Info</div>
-                        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>
-                            📡 PostgreSQL · {process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || ''} → Backend → Prisma → PostgreSQL
+                            ))}
                         </div>
-                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', marginTop: 4 }}>
-                            All writes/reads go through the secure Express API. Direct DB access is not exposed.
+                    )}
+
+                    <div className="notice" style={{ marginTop: 20 }}>
+                        <span className="choice-icon" style={{ width: 38, height: 38 }}><Database size={17} /></span>
+                        <div style={{ minWidth: 0 }}>
+                            <div style={{ fontWeight: 600, marginBottom: 4 }}>Connection</div>
+                            <div className="small" style={{ color: 'var(--text-2)', overflowWrap: 'anywhere' }}>
+                                {process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'API'} → Express → Prisma → PostgreSQL
+                            </div>
+                            <div className="muted small" style={{ marginTop: 4 }}>
+                                Every read and write goes through the authenticated API. The database is never exposed directly.
+                            </div>
                         </div>
                     </div>
                 </>
@@ -549,130 +615,94 @@ export default function AdminPage() {
 
     // ─── Settings Tab ─────────────────────────────────────────────────────────
     const SettingsTab = () => (
-        <div style={{ maxWidth: 600 }}>
-            <div className="card" style={{ padding: 28, marginBottom: 20 }}>
-                <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>System Information</h3>
-                {[
-                    { label: 'Platform', value: 'Crick-Buddy Cricket AI v1.0' },
-                    { label: 'Backend', value: 'Node.js + Express + PostgreSQL' },
-                    { label: 'AI Service', value: 'Python FastAPI + MediaPipe + OpenCV' },
-                    { label: 'Frontend', value: 'Next.js 14 + TailwindCSS' },
-                    { label: 'Database', value: 'PostgreSQL (Prisma ORM)' },
-                    { label: 'Auth', value: 'JWT (HS256) + bcryptjs' },
-                    { label: 'Admin', value: user?.email },
-                ].map(row => (
-                    <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                        <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)' }}>{row.label}</span>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: '#00ff88' }}>{row.value}</span>
-                    </div>
-                ))}
-            </div>
+        <div className="grid-2 rise rise-1" style={{ alignItems: 'start' }}>
+            <section className="card card-pad">
+                <div className="card-head"><h3>System</h3></div>
+                <div className="list">
+                    {[
+                        { label: 'Platform', value: 'CrickBuddy 1.0' },
+                        { label: 'Backend', value: 'Node.js, Express, PostgreSQL' },
+                        { label: 'AI service', value: 'Python FastAPI, MediaPipe, OpenCV' },
+                        { label: 'Frontend', value: 'Next.js, React' },
+                        { label: 'Database', value: 'PostgreSQL (Prisma ORM)' },
+                        { label: 'Auth', value: 'JWT (HS256), bcryptjs' },
+                        { label: 'Admin', value: user?.email },
+                    ].map(row => (
+                        <div key={row.label} className="list-item" style={{ justifyContent: 'space-between', paddingTop: 12, paddingBottom: 12 }}>
+                            <span className="label">{row.label}</span>
+                            <span className="small" style={{ fontWeight: 600, color: 'var(--text)', textAlign: 'right', overflowWrap: 'anywhere' }}>{row.value}</span>
+                        </div>
+                    ))}
+                </div>
+            </section>
 
-            <div className="card" style={{ padding: 28 }}>
-                <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Quick Actions</h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    <Link href="/dashboard" className="btn-secondary" style={{ textDecoration: 'none', justifyContent: 'flex-start', padding: '12px 16px' }}>
-                        <Home size={16} /> Go to Player Dashboard
+            <section className="card card-pad">
+                <div className="card-head"><h3>Quick actions</h3></div>
+                <div className="stack" style={{ gap: 10 }}>
+                    <Link href="/dashboard" className="btn btn-secondary btn-full" style={{ justifyContent: 'flex-start' }}>
+                        <Home size={16} /> Player dashboard
                     </Link>
-                    <a href="/api/health" target="_blank" className="btn-secondary" style={{ textDecoration: 'none', justifyContent: 'flex-start', padding: '12px 16px' }}>
-                        <Activity size={16} /> Check API Health
+                    <a href="/api/health" target="_blank" rel="noreferrer" className="btn btn-secondary btn-full" style={{ justifyContent: 'flex-start' }}>
+                        <Activity size={16} /> Check API health
                     </a>
-                    <button className="btn-secondary" style={{ justifyContent: 'flex-start', padding: '12px 16px', color: '#ff4757' }} onClick={logout}>
-                        <LogOut size={16} /> Sign Out
+                    <button type="button" className="btn btn-danger btn-full" style={{ justifyContent: 'flex-start' }} onClick={logout}>
+                        <LogOut size={16} /> Sign out
                     </button>
                 </div>
-            </div>
+            </section>
         </div>
     );
 
     // ─── Pagination ───────────────────────────────────────────────────────────
     const Pagination = () => (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>Page {page} of {totalPages}</span>
-            <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn-secondary" style={{ padding: '6px 14px' }} disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
+        <nav className="row-between" aria-label="Pagination">
+            <span className="muted small tnum">Page {page} of {totalPages}</span>
+            <div className="row" style={{ gap: 8 }}>
+                <button type="button" className="btn btn-secondary btn-sm btn-icon" style={{ width: 34 }} disabled={page <= 1} onClick={() => setPage(p => p - 1)} aria-label="Previous page">
                     <ChevronLeft size={16} />
                 </button>
-                <button className="btn-secondary" style={{ padding: '6px 14px' }} disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+                <button type="button" className="btn btn-secondary btn-sm btn-icon" style={{ width: 34 }} disabled={page >= totalPages} onClick={() => setPage(p => p + 1)} aria-label="Next page">
                     <ChevronRight size={16} />
                 </button>
             </div>
-        </div>
+        </nav>
     );
 
     // ─── Render ───────────────────────────────────────────────────────────────
+    // Tab bodies are called as functions (not mounted as <Tab />) so inputs such as
+    // the user search keep focus across re-renders.
     return (
-        <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-primary)' }}>
-            {/* Admin Sidebar */}
-            <div style={{ width: 220, flexShrink: 0, background: '#0a0e1a', borderRight: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column' }}>
-                {/* Logo */}
-                <div style={{ padding: '24px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                        <Shield size={20} color="#ff4757" />
-                        <span style={{ fontSize: 16, fontWeight: 900, color: '#fff' }}>Admin Panel</span>
-                    </div>
-                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Crick-Buddy Cricket AI</div>
-                </div>
+        <div className="app">
+            <Sidebar />
+            <main className="main-content">
+                <div className="page">
+                    <PageHeader
+                        eyebrow="Admin console"
+                        title={adminNav.find(n => n.key === tab)?.label}
+                        description="Players, clips and reports across CrickBuddy."
+                        actions={<>
+                            <Link href="/dashboard" className="btn btn-ghost btn-sm"><Home size={14} /> Player view</Link>
+                            <button type="button" className="btn btn-secondary btn-sm" onClick={fetchStats}><RefreshCw size={14} /> Refresh</button>
+                        </>}
+                    />
 
-                {/* Nav */}
-                <nav style={{ flex: 1, padding: '12px 0' }}>
-                    {adminNav.map(item => (
-                        <button key={item.key} onClick={() => setTab(item.key)} style={{
-                            width: '100%', padding: '10px 20px', background: tab === item.key ? 'rgba(255,71,87,0.12)' : 'none',
-                            border: 'none', borderLeft: tab === item.key ? '3px solid #ff4757' : '3px solid transparent',
-                            color: tab === item.key ? '#ff4757' : 'rgba(255,255,255,0.5)',
-                            cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10,
-                            fontSize: 14, fontWeight: tab === item.key ? 700 : 500, transition: 'all 0.15s'
-                        }}>
-                            <item.icon size={17} />
-                            {item.label}
-                        </button>
-                    ))}
-                </nav>
-
-                {/* User */}
-                <div style={{ padding: '12px 20px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <div style={{ width: 30, height: 30, borderRadius: '50%', background: '#ff4757', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, color: '#fff', fontSize: 13 }}>
-                            {user?.name?.charAt(0)}
-                        </div>
-                        <div>
-                            <div style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>{user?.name?.split(' ')[0]}</div>
-                            <div style={{ fontSize: 10, color: '#ff4757', fontWeight: 600 }}>Administrator</div>
-                        </div>
+                    <div className="segmented rise rise-1" role="tablist" aria-label="Admin sections" style={{ marginBottom: 24 }}>
+                        {adminNav.map(item => (
+                            <button key={item.key} type="button" role="tab" aria-selected={tab === item.key}
+                                className={tab === item.key ? 'on' : ''} onClick={() => setTab(item.key)}>
+                                {item.label}
+                            </button>
+                        ))}
                     </div>
-                </div>
-            </div>
 
-            {/* Main Content */}
-            <div style={{ flex: 1, overflow: 'auto' }}>
-                {/* Top bar */}
-                <div style={{ height: 56, background: 'rgba(0,0,0,0.2)', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 32px' }}>
-                    <div>
-                        <h2 style={{ fontSize: 18, fontWeight: 800 }}>
-                            {adminNav.find(n => n.key === tab)?.label}
-                        </h2>
-                    </div>
-                    <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                        <Link href="/dashboard" style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 5 }}>
-                            <Home size={14} /> Player View
-                        </Link>
-                        <button onClick={fetchStats} style={{ background: 'none', border: 'none', color: '#00ff88', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, fontSize: 13 }}>
-                            <RefreshCw size={14} /> Refresh
-                        </button>
-                    </div>
+                    {tab === 'overview' && OverviewTab()}
+                    {tab === 'users' && UsersTab()}
+                    {tab === 'uploads' && UploadsTab()}
+                    {tab === 'reports' && ReportsTab()}
+                    {tab === 'database' && DatabaseTab()}
+                    {tab === 'settings' && SettingsTab()}
                 </div>
-
-                {/* Page content */}
-                <div style={{ padding: '28px 32px' }}>
-                    {tab === 'overview' && <OverviewTab />}
-                    {tab === 'users' && <UsersTab />}
-                    {tab === 'uploads' && <UploadsTab />}
-                    {tab === 'reports' && <ReportsTab />}
-                    {tab === 'database' && <DatabaseTab />}
-                    {tab === 'settings' && <SettingsTab />}
-                </div>
-            </div>
+            </main>
 
             {/* Modals */}
             {editUser && (

@@ -3,21 +3,48 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
 import Sidebar from '@/components/Sidebar';
-import { MetricCard, ScoreBadge, StatusBadge, LoadingSpinner } from '@/components/ui';
+import { MetricCard, ScoreBadge, StatusBadge, LoadingSpinner, scoreWord } from '@/components/ui';
 import { uploadsAPI, reportsAPI } from '@/lib/api';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Upload, LineChart as LineIcon, RotateCcw, Check, AlertTriangle, Gauge } from 'lucide-react';
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import toast from 'react-hot-toast';
+
+// recharts needs literal colours: white, navy-300 and the hairline grid from globals.css.
+const CHART = { primary: '#FFFFFF', secondary: '#8AA2CF', grid: 'rgba(255,255,255,0.08)', axis: 'rgba(245,247,251,0.48)', tooltip: '#0E1A33' };
+
+// Backend progress values → human stages
+const STAGES = [
+    { at: 10, title: 'Clip received', text: 'Your video is stored safely.' },
+    { at: 15, title: 'Starting the engine', text: 'The analysis server wakes up if it was idle — up to a minute.' },
+    { at: 30, title: 'Tracking your movement', text: 'Finding the key moment and measuring 33 body points frame by frame. This is the long step — usually 1–4 minutes.' },
+    { at: 80, title: 'Building your report', text: 'Scoring, fault checks and coaching notes.' },
+];
+
+const fmtElapsed = (ms: number) => {
+    const s = Math.max(0, Math.floor(ms / 1000));
+    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+};
+
+function Section({ title, items, variant, empty }: { title: string; items?: string[]; variant?: 'warn' | 'dots'; empty?: string }) {
+    if (!items?.length && !empty) return null;
+    return (
+        <section className="card card-pad">
+            <h3 style={{ fontSize: 17, marginBottom: 16 }}>{title}</h3>
+            {items?.length ? <ul className={`ticks ${variant ?? ''}`}>{items.map((s, i) => <li key={i}>{s}</li>)}</ul>
+                : <p className="muted small">{empty}</p>}
+        </section>
+    );
+}
 
 export default function AnalysisPage() {
     const { id } = useParams() as { id: string };
-    const { user } = useAuth();
     const [upload, setUpload] = useState<any>(null);
     const [report, setReport] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [retrying, setRetrying] = useState(false);
     const [loadError, setLoadError] = useState<string>('');
+    const [now, setNow] = useState(Date.now());
 
     const formatErrorMessage = (msg: string) => {
         if (!msg) return 'Analysis failed';
@@ -29,9 +56,9 @@ export default function AnalysisPage() {
             msg.includes('503') ||
             msg.includes('504')
         ) {
-            return 'AI analysis service is currently unavailable. Your upload has been saved and analysis will resume automatically.';
+            return 'The analysis server is unavailable right now. Your clip is saved — use Retry in a minute.';
         }
-        return msg;
+        return msg.replace(/^ERR_[A-Z_]+:\s*/, '');
     };
 
     const fetchData = async (isInitial = false) => {
@@ -39,62 +66,48 @@ export default function AnalysisPage() {
             const u = await uploadsAPI.getOne(id);
             if (!u.data.upload) {
                 setLoadError('Upload data not available yet.');
-                if (isInitial) toast.error('Upload record is empty');
                 return;
             }
             setLoadError('');
             setUpload(u.data.upload);
-            
+
             if (u.data.upload.status === 'completed') {
                 try {
                     const r = await reportsAPI.byUpload(id);
-                    if (r.data.report) {
-                        setReport(r.data.report);
-                    }
-                } catch (err) {
+                    if (r.data.report) setReport(r.data.report);
+                } catch {
                     console.warn('Report not ready yet even though upload is marked complete');
                 }
             }
         } catch (err: any) {
             setLoadError(err.response?.data?.message || 'Could not load this analysis.');
-            if (isInitial) {
-                toast.error(err.response?.data?.message || 'Upload not found — make sure the backend is running on port 5000');
-            }
-            console.error('Error fetching analysis data:', err);
+            if (isInitial) toast.error(err.response?.data?.message || 'Upload not found');
         } finally {
             setLoading(false);
         }
     };
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => { fetchData(true); }, [id]);
 
-    // Poll while processing
+    // Poll while processing, and tick the elapsed timer
     useEffect(() => {
         if (!upload) return;
         const shouldPoll = upload.status === 'pending' || upload.status === 'processing' || (upload.status === 'completed' && !report);
         if (!shouldPoll) return;
-        const interval = setInterval(() => fetchData(), 4000);
-        return () => clearInterval(interval);
+        const poll = setInterval(() => fetchData(), 4000);
+        const tick = setInterval(() => setNow(Date.now()), 1000);
+        return () => { clearInterval(poll); clearInterval(tick); };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [upload?.status, report]);
-
-    const m = report;
-    const isCompleted = upload?.status === 'completed';
-    const type = upload?.type || 'analysis';
-    const isStaleProcessing = (() => {
-        if (!upload?.createdAt) return false;
-        if (!['pending', 'processing'].includes(upload?.status)) return false;
-        const createdAt = new Date(upload.createdAt).getTime();
-        if (Number.isNaN(createdAt)) return false;
-        const minutesElapsed = (Date.now() - createdAt) / (1000 * 60);
-        return minutesElapsed >= 10;
-    })();
 
     const retryAnalysis = async () => {
         if (!id || retrying) return;
         try {
             setRetrying(true);
             await uploadsAPI.retryAnalysis(id);
-            toast.success('Analysis restarted. Please wait for fresh report generation.');
+            toast.success('Analysis restarted');
+            setReport(null);
             await fetchData();
         } catch (err: any) {
             toast.error(err.response?.data?.message || 'Could not restart analysis');
@@ -103,333 +116,252 @@ export default function AnalysisPage() {
         }
     };
 
-    const createdAtText = (() => {
-        if (!upload?.createdAt) return '—';
-        const parsed = new Date(upload.createdAt);
-        return Number.isNaN(parsed.getTime()) ? '—' : parsed.toLocaleString();
-    })();
+    const type = upload?.type || 'analysis';
+    const isCompleted = upload?.status === 'completed';
+    const isWorking = upload && !isCompleted && upload.status !== 'failed';
+    const elapsedMs = upload?.createdAt ? now - new Date(upload.createdAt).getTime() : 0;
+    // On a small server a long clip can take ~6 minutes; only suggest a restart well beyond that.
+    const isStale = isWorking && elapsedMs > 15 * 60 * 1000;
+    const stageIndex = STAGES.reduce((acc, s, i) => ((upload?.processingProgress || 0) >= s.at ? i : acc), 0);
+    const created = upload?.createdAt ? new Date(upload.createdAt) : null;
+
+    const b = report?.battingMetrics;
+    const w = report?.bowlingMetrics;
+    const p = report?.postureMetrics;
+
+    const frames: any[] = (report?.rawFrameMetrics || []).map((f: any) => ({
+        frame: f.frameIndex,
+        a: type === 'bowling' ? f.rightElbowAngle : f.leftKneeAngle,
+        b: type === 'bowling' ? f.leftElbowAngle : f.rightKneeAngle,
+    }));
+    const chartLabels = type === 'bowling' ? ['Right elbow', 'Left elbow'] : ['Left knee', 'Right knee'];
 
     return (
-        <div style={{ display: 'flex' }}>
+        <div className="app">
             <Sidebar />
-            <main className="main-content" style={{ padding: 'clamp(16px,3vw,32px) clamp(16px,3.5vw,40px)', width: '100%' }}>
-                {/* Header */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 32 }}>
-                    <Link href="/dashboard" style={{ color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', gap: 6, textDecoration: 'none', fontSize: 14 }}>
-                        <ArrowLeft size={16} /> Dashboard
-                    </Link>
-                    <span style={{ color: 'rgba(255,255,255,0.2)' }}>/</span>
-                    <span style={{ color: '#fff', fontSize: 14, fontWeight: 600, textTransform: 'capitalize' }}>
-                        {type} Analysis
-                    </span>
-                </div>
+            <main className="main-content">
+                <div className="page">
+                    <div className="crumbs" style={{ marginBottom: 18 }}>
+                        <Link href="/dashboard" className="row" style={{ gap: 6 }}><ArrowLeft size={15} /> Dashboard</Link>
+                        <span>/</span>
+                        <span style={{ color: 'var(--text-2)', textTransform: 'capitalize' }}>{type} analysis</span>
+                    </div>
 
-                {loading ? <LoadingSpinner /> : (
-                    <>
-                        {!upload && (
-                            <div className="card" style={{ padding: 24, marginBottom: 24 }}>
-                                <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Could not load analysis</div>
-                                <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 14, marginBottom: 14 }}>
-                                    {loadError || 'The upload id may be invalid or the backend service is unavailable.'}
-                                </div>
-                                <div style={{ display: 'flex', gap: 10 }}>
-                                    <button className="btn-secondary" onClick={() => fetchData(true)}>Retry</button>
-                                    <Link href="/upload" className="btn-primary">Upload New Video</Link>
+                    {loading ? <LoadingSpinner label="Loading analysis" /> : !upload ? (
+                        <div className="notice notice-error">
+                            <AlertTriangle size={20} />
+                            <div style={{ flex: 1 }}>
+                                <strong>Could not load this analysis</strong>
+                                <div className="muted small">{loadError || 'The link may be wrong, or the server is unavailable.'}</div>
+                                <div className="row" style={{ marginTop: 12 }}>
+                                    <button className="btn btn-secondary btn-sm" onClick={() => fetchData(true)}>Try again</button>
+                                    <Link href="/upload" className="btn btn-ghost btn-sm">Upload a new clip</Link>
                                 </div>
                             </div>
-                        )}
-
-                        {/* Status card */}
-                        {upload && (
-                        <div className="card-glass analysis-status-card" style={{ padding: 'clamp(16px,2.5vw,28px) clamp(16px,3vw,32px)', marginBottom: 32, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, boxShadow: '0 20px 50px rgba(0,0,0,0.2)', flexWrap: 'wrap' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 28 }}>
-                                {isCompleted && report && <ScoreBadge score={report.overallScore || 0} size="lg" />}
-                                <div>
-                                    <div style={{ fontSize: 'clamp(20px, 3vw, 26px)', fontWeight: 900, textTransform: 'capitalize', marginBottom: 6, letterSpacing: '-0.02em' }}>
-                                        {type} Analysis <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>—</span> {isCompleted ? <span style={{ color: 'var(--accent-green-bright)' }}>Success</span> : <span style={{ color: 'var(--accent-gold)' }}>{upload?.status}</span>}
-                                    </div>
-                                    <div style={{ color: 'var(--text-secondary)', fontSize: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
-                                        <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{upload?.originalName || 'Analysis Record'}</span>
-                                        <span style={{ opacity: 0.3 }}>|</span>
-                                        <span>{createdAtText}</span>
-                                    </div>
-                                    <div style={{ marginTop: 12 }}><StatusBadge status={upload?.status} /></div>
-                                </div>
-                            </div>
-                            {!isCompleted && upload?.status !== 'failed' && (
-                                <div style={{ textAlign: 'right', minWidth: 220 }}>
-                                    <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 10, fontWeight: 600 }}>
-                                        AI ENGINE PROCESSING... {upload?.processingProgress || 0}%
-                                    </div>
-                                    <div className="xp-bar-container" style={{ height: 10 }}>
-                                        <div className="xp-bar-fill" style={{ width: `${upload?.processingProgress || 0}%` }} />
-                                    </div>
-                                    <div style={{ fontSize: 12, color: 'var(--accent-green-bright)', marginTop: 8, fontWeight: 500, animation: 'glow-pulse 2s infinite' }}>
-                                        Analyzing pose biomechanics...
-                                    </div>
-                                </div>
-                            )}
-                            {upload?.status === 'failed' && (
-                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 12 }}>
-                                    <div style={{ color: 'var(--accent-red)', fontSize: 14, fontWeight: 600, background: 'rgba(239,68,68,0.1)', padding: '8px 16px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.2)' }}>
-                                        ⚠️ {formatErrorMessage(upload?.errorMessage)}
-                                    </div>
-                                    <button className="btn btn-secondary" onClick={retryAnalysis} disabled={retrying}>
-                                        {retrying ? 'Retrying...' : 'Restart Analysis Engine'}
-                                    </button>
-                                </div>
-                            )}
                         </div>
-                        )}
+                    ) : (
+                        <>
+                            {/* ── Hero ── */}
+                            <section className="hero pitch-stripes rise" style={{ borderRadius: 'var(--radius-lg)', border: '1px solid var(--line)', padding: 'clamp(22px, 3vw, 36px)', marginBottom: 20 }}>
+                                <div className="row wrap" style={{ gap: 28, alignItems: 'center' }}>
+                                    {isCompleted && report && <ScoreBadge score={report.overallScore || 0} size="xl" caption="Overall" />}
+                                    <div style={{ flex: 1, minWidth: 240 }}>
+                                        <div className="row wrap" style={{ gap: 10 }}>
+                                            <StatusBadge status={upload.status} />
+                                            {created && <span className="muted small">{created.toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>}
+                                        </div>
+                                        <h1 style={{ marginTop: 12, textTransform: 'uppercase' }}>{type} analysis</h1>
+                                        <p className="lede" style={{ marginTop: 6, wordBreak: 'break-all' }}>{upload.originalName}</p>
+                                        {isCompleted && report && (
+                                            <p style={{ marginTop: 10, fontWeight: 600 }}>
+                                                {scoreWord(report.overallScore)}
+                                                {b?.shotType && !b.shotType.startsWith('Unclassified') && <span className="muted"> · {b.shotType}</span>}
+                                                {w?.bowlingStyle && <span className="muted"> · {w.bowlingStyle}</span>}
+                                            </p>
+                                        )}
+                                    </div>
+                                    {upload.status === 'failed' && (
+                                        <button className="btn btn-primary" onClick={retryAnalysis} disabled={retrying}>
+                                            <RotateCcw size={16} /> {retrying ? 'Restarting…' : 'Retry analysis'}
+                                        </button>
+                                    )}
+                                </div>
+                            </section>
 
-                        {isStaleProcessing && (
-                            <div style={{ marginBottom: 32 }}>
-                                <div className="card" style={{ padding: 20, display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'center', border: '1px solid var(--accent-gold)' }}>
-                                    <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-                                        <div style={{ fontSize: 24 }}>⏳</div>
+                            {/* ── Failed ── */}
+                            {upload.status === 'failed' && (
+                                <div className="notice notice-error rise rise-1" style={{ marginBottom: 20 }}>
+                                    <AlertTriangle size={20} style={{ color: 'var(--poor)', flexShrink: 0 }} />
+                                    <div>
+                                        <strong>We couldn&apos;t analyse this clip</strong>
+                                        <div className="small" style={{ color: 'var(--text-2)', marginTop: 4 }}>{formatErrorMessage(upload.errorMessage)}</div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* ── In progress: honest stage tracker ── */}
+                            {isWorking && (
+                                <section className="card card-pad rise rise-1" aria-live="polite">
+                                    <div className="row-between wrap" style={{ marginBottom: 22 }}>
                                         <div>
-                                            <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 2 }}>Analysis Timeout</div>
-                                            <div style={{ fontSize: 14, color: 'var(--text-secondary)' }}>
-                                                The analysis is taking longer than usual. You can try restarting the process.
+                                            <div className="eyebrow">Analysing</div>
+                                            <h2 style={{ marginTop: 8 }}>{STAGES[stageIndex].title}</h2>
+                                        </div>
+                                        <div style={{ textAlign: 'right' }}>
+                                            <div className="label">Elapsed</div>
+                                            <div className="stat-value tnum" style={{ fontSize: 34, marginTop: 4 }}>{fmtElapsed(elapsedMs)}</div>
+                                        </div>
+                                    </div>
+                                    <div className="progress-indeterminate" style={{ marginBottom: 24 }} />
+                                    <ol className="stack" style={{ listStyle: 'none', gap: 14 }}>
+                                        {STAGES.map((s, i) => {
+                                            const done = i < stageIndex, current = i === stageIndex;
+                                            return (
+                                                <li key={s.title} className="row" style={{ alignItems: 'flex-start', gap: 14, opacity: done || current ? 1 : 0.45 }}>
+                                                    <span className="rank" style={{ width: 28, height: 28, fontSize: 14, background: done ? 'var(--white)' : current ? 'var(--navy-700)' : 'var(--navy-850)', color: done ? 'var(--navy-950)' : 'var(--text)' }}>
+                                                        {done ? <Check size={15} /> : current ? <span className="spinner" style={{ width: 14, height: 14 }} /> : i + 1}
+                                                    </span>
+                                                    <div>
+                                                        <div style={{ fontWeight: 600 }}>{s.title}</div>
+                                                        {current && <div className="muted small" style={{ marginTop: 2 }}>{s.text}</div>}
+                                                    </div>
+                                                </li>
+                                            );
+                                        })}
+                                    </ol>
+                                    {isStale && (
+                                        <div className="notice notice-warn" style={{ marginTop: 22, alignItems: 'center' }}>
+                                            <AlertTriangle size={18} style={{ color: 'var(--fair)' }} />
+                                            <div style={{ flex: 1 }} className="small">This is taking much longer than usual. You can restart it — your clip is kept.</div>
+                                            <button className="btn btn-secondary btn-sm" onClick={retryAnalysis} disabled={retrying}>
+                                                <RotateCcw size={14} /> {retrying ? 'Restarting…' : 'Restart'}
+                                            </button>
+                                        </div>
+                                    )}
+                                    <p className="muted small" style={{ marginTop: 20 }}>You can leave this page — the analysis keeps running and appears on your dashboard when it&apos;s done.</p>
+                                </section>
+                            )}
+
+                            {/* ── Report ── */}
+                            {isCompleted && report && (
+                                <div className="stack" style={{ gap: 20 }}>
+                                    <div className="grid-4 rise rise-1">
+                                        {type === 'batting' && b && <>
+                                            <MetricCard label="Timing" value={b.timingScore} score={b.timingScore} note="Front foot into the swing" />
+                                            <MetricCard label="Head stability" value={b.headStabilityScore} score={b.headStabilityScore} note={b.headStabilityScore == null ? 'Face not visible — film side-on' : 'Downswing'} />
+                                            <MetricCard label="Balance" value={b.balanceScore} score={b.balanceScore} note="At contact" />
+                                            <MetricCard label="Follow-through" value={b.followThroughScore} score={b.followThroughScore} />
+                                            <MetricCard label="Stride" value={b.strideScore} score={b.strideScore} note={b.strideScore == null ? 'Needs a side-on camera' : undefined} />
+                                            <MetricCard label="Set-up stance" value={b.stanceScore} score={b.stanceScore} />
+                                            <MetricCard label="Swing plane" value={b.batSwingAngle != null ? Math.round(b.batSwingAngle) : null} unit="°" note="90° is a vertical bat" />
+                                            <MetricCard label="Knee range" value={b.rangeOfMotion != null ? Math.round(b.rangeOfMotion) : null} unit="°" note="Front-knee drive" />
+                                        </>}
+                                        {type === 'bowling' && w && <>
+                                            <MetricCard label="Release point" value={w.releasePointScore} score={w.releasePointScore} note="Height and extension" />
+                                            <MetricCard label="Arm smoothness" value={w.armSmoothnessScore} score={w.armSmoothnessScore} />
+                                            <MetricCard label="Wrist at release" value={w.wristPositionScore} score={w.wristPositionScore} />
+                                            <MetricCard label="Balance" value={w.balanceScore} score={w.balanceScore} note="At release" />
+                                            <MetricCard label="Elbow at release" value={w.releaseArmAngle != null ? Math.round(w.releaseArmAngle) : null} unit="°" note="180° is fully straight" />
+                                            <MetricCard label="Ball speed" value={w.estimatedBallSpeed} unit="km/h" note={w.estimatedBallSpeed ? w.speedClassification : 'Ball not tracked'} />
+                                        </>}
+                                        {type === 'posture' && p && <>
+                                            <MetricCard label="Shoulders" value={p.shoulderAlignmentScore} score={p.shoulderAlignmentScore} />
+                                            <MetricCard label="Knee bend" value={p.kneeBendScore} score={p.kneeBendScore} note={p.kneeBendAngle != null ? `${Math.round(p.kneeBendAngle)}° at the knee` : undefined} />
+                                            <MetricCard label="Hip balance" value={p.balanceScore} score={p.balanceScore} />
+                                            <MetricCard label="Spine" value={p.spinePosScore} score={p.spinePosScore} />
+                                        </>}
+                                    </div>
+
+                                    {(b?.headPosition || w?.releasePointNote || p?.shoulderAlignmentNote) && (
+                                        <div className="notice notice-info rise rise-2">
+                                            <Gauge size={18} style={{ color: 'var(--info)', flexShrink: 0 }} />
+                                            <div className="small" style={{ color: 'var(--text-2)' }}>
+                                                {b?.headPosition && <div><strong style={{ color: 'var(--text)' }}>Head · </strong>{b.headPosition}</div>}
+                                                {w?.releasePointNote && <div><strong style={{ color: 'var(--text)' }}>Release · </strong>{w.releasePointNote}</div>}
+                                                {w?.wristPositionNote && <div><strong style={{ color: 'var(--text)' }}>Wrist · </strong>{w.wristPositionNote}</div>}
+                                                {p?.shoulderAlignmentNote && <div><strong style={{ color: 'var(--text)' }}>Shoulders · </strong>{p.shoulderAlignmentNote}</div>}
                                             </div>
                                         </div>
-                                    </div>
-                                    <button className="btn btn-secondary" onClick={retryAnalysis} disabled={retrying} style={{ borderColor: 'var(--accent-gold)', color: 'var(--accent-gold)' }}>
-                                        {retrying ? 'Retrying...' : 'Restart Analysis'}
-                                    </button>
-                                </div>
-                            </div>
-                        )}
+                                    )}
 
-                        {/* Report details */}
-                        {isCompleted && report && (
-                            <div className="animate-fadeUp">
-                                {/* Batting metrics */}
-                                {type === 'batting' && report.battingMetrics && (
-                                    <div style={{ marginBottom: 40 }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-                                            <div style={{ fontSize: 28 }}>🏏</div>
-                                            <h2 style={{ fontSize: 22, fontWeight: 900, letterSpacing: '-0.02em' }}>Technical Batting Performance</h2>
+                                    {/* Faults */}
+                                    <section className="card card-pad rise rise-2">
+                                        <div className="card-head">
+                                            <h3>Technique faults</h3>
+                                            <span className="badge">{report.faultLog?.length || 0} found</span>
                                         </div>
-                                        <div className="metric-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 20 }}>
-                                            <MetricCard label="Timing (Foot → Swing)" value={report.battingMetrics.timingScore ?? '—'} unit="pts" score={report.battingMetrics.timingScore} />
-                                            <MetricCard label="Head Stability" value={report.battingMetrics.headStabilityScore ?? '—'} unit="pts" score={report.battingMetrics.headStabilityScore} />
-                                            <MetricCard label="Balance at Contact" value={report.battingMetrics.balanceScore ?? '—'} unit="pts" score={report.battingMetrics.balanceScore} />
-                                            <MetricCard label="Stride" value={report.battingMetrics.strideScore ?? '—'} unit="pts" score={report.battingMetrics.strideScore} />
-                                            <MetricCard label="Follow-Through" value={report.battingMetrics.followThroughScore ?? '—'} unit="pts" score={report.battingMetrics.followThroughScore} />
-                                            <MetricCard label="Set-up Stance" value={report.battingMetrics.stanceScore ?? '—'} unit="pts" score={report.battingMetrics.stanceScore} />
-                                            <MetricCard label="Swing Plane" value={report.battingMetrics.batSwingAngle?.toFixed(0) ?? '—'} unit="°" />
-                                            <MetricCard label="Shot Family" value={report.battingMetrics.shotType || '—'} color="var(--accent-secondary)" />
-                                        </div>
-                                        {report.battingMetrics.headPosition && (
-                                            <div style={{ marginTop: 20, padding: '16px 20px', background: 'var(--accent-green-dim)', borderRadius: 12, border: '1px solid var(--border-green)', fontSize: 15, color: 'var(--text-primary)', display: 'flex', gap: 12, alignItems: 'center' }}>
-                                                <span style={{ fontSize: 20 }}>🎯</span>
-                                                <div><strong>Head:</strong> {report.battingMetrics.headPosition}</div>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-
-                                {/* Bowling metrics */}
-                                {type === 'bowling' && report.bowlingMetrics && (
-                                    <div style={{ marginBottom: 40 }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-                                            <div style={{ fontSize: 28 }}>⚡</div>
-                                            <h2 style={{ fontSize: 22, fontWeight: 900, letterSpacing: '-0.02em' }}>Pace & Delivery Metrics</h2>
-                                        </div>
-                                        <div className="metric-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 20 }}>
-                                            <MetricCard label="Release Point" value={report.bowlingMetrics.releasePointScore ?? '—'} unit="pts" score={report.bowlingMetrics.releasePointScore} color="var(--accent-blue)" />
-                                            <MetricCard label="Arm Smoothness" value={report.bowlingMetrics.armSmoothnessScore ?? '—'} unit="pts" score={report.bowlingMetrics.armSmoothnessScore} color="var(--accent-blue)" />
-                                            <MetricCard label="Wrist at Release" value={report.bowlingMetrics.wristPositionScore ?? '—'} unit="pts" score={report.bowlingMetrics.wristPositionScore} color="var(--accent-blue)" />
-                                            <MetricCard label="Balance at Release" value={report.bowlingMetrics.balanceScore ?? '—'} unit="pts" score={report.bowlingMetrics.balanceScore} color="var(--accent-blue)" />
-                                            <MetricCard label="Elbow at Release" value={report.bowlingMetrics.releaseArmAngle?.toFixed(0) ?? '—'} unit="°" color="var(--accent-blue)" />
-                                            <MetricCard label="Bowler" value={report.bowlingMetrics.bowlingStyle || '—'} color="var(--accent-gold)" />
-                                        </div>
-                                        
-                                        {report.bowlingMetrics.releasePointNote && (
-                                            <div style={{ marginTop: 20, padding: '14px 20px', background: 'rgba(59,130,246,0.06)', borderRadius: 12, border: '1px solid rgba(59,130,246,0.2)', fontSize: 14 }}>
-                                                <strong>Release:</strong> {report.bowlingMetrics.releasePointNote}
-                                            </div>
-                                        )}
-
-                                        {/* Speed: only shown when the ball was actually tracked */}
-                                        {report.bowlingMetrics.estimatedBallSpeed ? (
-                                        <div style={{ marginTop: 24, padding: 28, background: 'linear-gradient(145deg, rgba(16,185,129,0.08), rgba(16,185,129,0.02))', borderRadius: 20, border: '1px solid var(--border-green)', display: 'flex', alignItems: 'center', gap: 32, flexWrap: 'wrap' }}>
-                                            <div style={{ textAlign: 'center', background: 'rgba(0,0,0,0.2)', padding: '20px 30px', borderRadius: 16, border: '1px solid rgba(16,185,129,0.2)' }}>
-                                                <div style={{ fontSize: 56, fontWeight: 900, color: 'var(--accent-green-bright)', lineHeight: 1 }}>{report.bowlingMetrics.estimatedBallSpeed || 0}</div>
-                                                <div style={{ fontSize: 14, color: 'var(--text-muted)', marginTop: 8, fontWeight: 700 }}>KM/H</div>
-                                            </div>
-                                            <div style={{ flex: 1, minWidth: 280 }}>
-                                                <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 6 }}>Ball Speed Analysis</div>
-                                                <div style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                                                    {report.bowlingMetrics.speedClassification} — estimated by tracking the ball after release and scaling by the bowler&apos;s height. Approximate: assumes a side-on camera.
-                                                 </div>
-                                                <div className="xp-bar-container" style={{ marginTop: 16, height: 12 }}>
-                                                    <div className="xp-bar-fill" style={{ width: `${Math.min(100, ((report.bowlingMetrics.estimatedBallSpeed || 0) / 160) * 100)}%` }} />
-                                                </div>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-muted)', marginTop: 8, fontWeight: 700, letterSpacing: '0.05em' }}>
-                                                    <span>0 KM/H</span>
-                                                    <span>ELITE (160 KM/H)</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        ) : (
-                                            <div style={{ marginTop: 20, padding: '14px 20px', background: 'rgba(255,255,255,0.03)', borderRadius: 12, border: '1px solid var(--border)', fontSize: 14, color: 'var(--text-secondary)' }}>
-                                                ⚡ <strong>Ball speed not measured</strong> — the ball wasn&apos;t tracked reliably after release. Film side-on with the ball visible for a few frames after it leaves the hand.
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-
-                                {/* Posture metrics */}
-                                {type === 'posture' && report.postureMetrics && (
-                                    <div style={{ marginBottom: 40 }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-                                            <div style={{ fontSize: 28 }}>📸</div>
-                                            <h2 style={{ fontSize: 22, fontWeight: 900, letterSpacing: '-0.02em' }}>Athletic Posture Analysis</h2>
-                                        </div>
-                                        <div className="metric-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 20 }}>
-                                            <MetricCard label="Shoulder Parallelism" value={report.postureMetrics.shoulderAlignmentScore} unit="pts" score={report.postureMetrics.shoulderAlignmentScore} color="var(--accent-gold)" />
-                                            <MetricCard label="Knee Flexion" value={report.postureMetrics.kneeBendAngle?.toFixed(1) || '—'} unit="°" color="var(--accent-gold)" />
-                                            <MetricCard label="Kinetic Balance" value={report.postureMetrics.balanceScore} unit="pts" score={report.postureMetrics.balanceScore} color="var(--accent-gold)" />
-                                            <MetricCard label="Spinal Alignment" value={report.postureMetrics.spinePosScore} unit="pts" score={report.postureMetrics.spinePosScore} color="var(--accent-gold)" />
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Detected faults (measured, with the value that triggered each) */}
-                                {Array.isArray(report.faultLog) && report.faultLog.length > 0 && (
-                                    <div className="card" style={{ padding: 24, marginBottom: 32, border: '1px solid rgba(239,68,68,0.25)' }}>
-                                        <h3 style={{ fontSize: 17, fontWeight: 800, marginBottom: 14 }}>🔍 Detected Technique Faults</h3>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                                            {report.faultLog.map((f: any) => (
-                                                <div key={f.id} style={{ display: 'flex', gap: 12, alignItems: 'baseline', flexWrap: 'wrap' }}>
-                                                    <span style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', padding: '2px 8px', borderRadius: 6, background: f.severity === 'critical' ? 'rgba(239,68,68,0.15)' : f.severity === 'moderate' ? 'rgba(245,158,11,0.15)' : 'rgba(148,163,184,0.15)', color: f.severity === 'critical' ? '#ef4444' : f.severity === 'moderate' ? '#f59e0b' : '#94a3b8' }}>{f.severity}</span>
-                                                    <span style={{ fontWeight: 600 }}>{f.faultText}</span>
-                                                    <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{f.metric} = {f.value} (threshold {f.threshold})</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* AI Expert Report - Grid Layout */}
-                                <div className="ai-report-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 24, marginBottom: 40 }}>
-                                    <div className="card" style={{ padding: 28, background: 'rgba(16,185,129,0.03)' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-                                            <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(16,185,129,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-green-bright)' }}>💪</div>
-                                            <h3 style={{ fontSize: 18, fontWeight: 800 }}>Key Technical Strengths</h3>
-                                        </div>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                                            {(report.strengths || []).map((s: string, i: number) => (
-                                                <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                                                    <div style={{ width: 20, height: 20, borderRadius: '50%', background: 'rgba(16,185,129,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: 'var(--accent-green-bright)', flexShrink: 0, marginTop: 2 }}>✓</div>
-                                                    <span style={{ fontSize: 15, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{s}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    <div className="card" style={{ padding: 28, background: 'rgba(239,68,68,0.03)' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-                                            <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(239,68,68,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-red)' }}>⚠️</div>
-                                            <h3 style={{ fontSize: 18, fontWeight: 800 }}>Areas for Development</h3>
-                                        </div>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                                            {(report.weaknesses || []).map((w: string, i: number) => (
-                                                <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                                                    <div style={{ width: 20, height: 20, borderRadius: '50%', background: 'rgba(239,68,68,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: 'var(--accent-red)', flexShrink: 0, marginTop: 2 }}>!</div>
-                                                    <span style={{ fontSize: 15, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{w}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    <div className="card" style={{ padding: 28 }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-                                            <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(56,189,248,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-primary)' }}>💡</div>
-                                            <h3 style={{ fontSize: 18, fontWeight: 800 }}>Coaching Cues</h3>
-                                        </div>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                                            {(report.improvementSuggestions || []).map((s: string, i: number) => (
-                                                <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                                                    <div style={{ color: 'var(--accent-primary)', marginTop: 2, flexShrink: 0 }}>→</div>
-                                                    <span style={{ fontSize: 15, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{s}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    <div className="card" style={{ padding: 28 }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-                                            <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(245,158,11,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-gold)' }}>🏋️</div>
-                                            <h3 style={{ fontSize: 18, fontWeight: 800 }}>Drills to Master</h3>
-                                        </div>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                                            {(report.trainingDrills || []).map((d: string, i: number) => (
-                                                <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                                                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent-gold)', flexShrink: 0, marginTop: 9 }}></div>
-                                                    <span style={{ fontSize: 15, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{d}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="card-glass" style={{ padding: 32, gridColumn: '1 / -1', background: 'rgba(129,140,248,0.05)', border: '1px solid rgba(129,140,248,0.2)' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
-                                            <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(129,140,248,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>🛡️</div>
-                                            <div>
-                                                <h3 style={{ fontSize: 20, fontWeight: 900 }}>Pro Strategy & Habits</h3>
-                                                <p style={{ fontSize: 14, color: 'var(--text-muted)' }}>Expert advice on recovery, gear, and elite best practices.</p>
-                                            </div>
-                                        </div>
-                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 24 }}>
-                                            <div>
-                                                <h4 style={{ fontSize: 14, fontWeight: 800, color: 'var(--accent-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 14 }}>Recommendations</h4>
-                                                {(report.recommendations || []).map((r: string, i: number) => (
-                                                    <div key={i} style={{ display: 'flex', gap: 10, marginBottom: 12, fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                                                        <span style={{ color: 'var(--accent-secondary)' }}>•</span> {r}
+                                        {report.faultLog?.length ? (
+                                            <div className="list">
+                                                {report.faultLog.map((f: any) => (
+                                                    <div key={f.id} className="list-item" style={{ alignItems: 'flex-start' }}>
+                                                        <span className={`badge ${f.severity === 'critical' ? 'badge-poor' : f.severity === 'moderate' ? 'badge-fair' : ''}`} style={{ flexShrink: 0 }}>{f.severity}</span>
+                                                        <div style={{ flex: 1 }}>
+                                                            <div style={{ fontWeight: 600 }}>{f.faultText}</div>
+                                                            <div className="muted small tnum">Measured {f.metric} = {f.value} · threshold {f.threshold}</div>
+                                                        </div>
                                                     </div>
                                                 ))}
                                             </div>
-                                            <div>
-                                                <h4 style={{ fontSize: 14, fontWeight: 800, color: 'var(--accent-green-bright)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 14 }}>Elite Best Practices</h4>
-                                                {(report.bestPractices || []).map((p: string, i: number) => (
-                                                    <div key={i} style={{ display: 'flex', gap: 10, marginBottom: 12, fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                                                        <span style={{ color: 'var(--accent-green-bright)' }}>★</span> {p}
-                                                    </div>
-                                                ))}
+                                        ) : <p className="muted small">No measured fault crossed its threshold in this clip.</p>}
+                                    </section>
+
+                                    {/* Frame-by-frame */}
+                                    {frames.length > 3 && (
+                                        <section className="card card-pad rise rise-3">
+                                            <div className="card-head">
+                                                <h3 className="row" style={{ gap: 10 }}><LineIcon size={18} /> Frame by frame</h3>
+                                                <div className="row small muted" style={{ gap: 16 }}>
+                                                    <span className="row" style={{ gap: 6 }}><i style={{ width: 14, height: 2, background: CHART.primary, display: 'inline-block' }} />{chartLabels[0]}</span>
+                                                    <span className="row" style={{ gap: 6 }}><i style={{ width: 14, height: 2, background: CHART.secondary, display: 'inline-block' }} />{chartLabels[1]}</span>
+                                                </div>
                                             </div>
-                                        </div>
+                                            <div style={{ height: 220 }}>
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <LineChart data={frames} margin={{ top: 6, right: 8, left: -18, bottom: 0 }}>
+                                                        <CartesianGrid stroke={CHART.grid} vertical={false} />
+                                                        <XAxis dataKey="frame" stroke={CHART.axis} tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
+                                                        <YAxis stroke={CHART.axis} tick={{ fontSize: 11 }} tickLine={false} axisLine={false} unit="°" domain={['auto', 'auto']} />
+                                                        <Tooltip contentStyle={{ background: CHART.tooltip, border: `1px solid ${CHART.grid}`, borderRadius: 10, fontSize: 12 }} labelFormatter={v => `Frame ${v}`} formatter={(v: any, n: any) => [`${Math.round(v)}°`, n === 'a' ? chartLabels[0] : chartLabels[1]]} />
+                                                        <Line type="monotone" dataKey="a" stroke={CHART.primary} strokeWidth={2} dot={false} connectNulls />
+                                                        <Line type="monotone" dataKey="b" stroke={CHART.secondary} strokeWidth={1.5} dot={false} connectNulls />
+                                                    </LineChart>
+                                                </ResponsiveContainer>
+                                            </div>
+                                            <p className="muted small" style={{ marginTop: 10 }}>Joint angles measured on each analysed frame of the key moment.</p>
+                                        </section>
+                                    )}
+
+                                    {/* Coaching */}
+                                    <div className="grid-2">
+                                        <Section title="Strengths" items={report.strengths} empty="No metric reached the strong band in this clip." />
+                                        <Section title="Work-ons" items={report.weaknesses} variant="warn" empty="Nothing flagged — keep repeating this under pressure." />
+                                        <Section title="Coaching cues" items={report.improvementSuggestions} variant="dots" />
+                                        <Section title="Drills" items={report.trainingDrills} variant="dots" />
+                                    </div>
+                                    {(report.recommendations?.length > 0 || report.bestPractices?.length > 0) && (
+                                        <section className="panel-black card-pad">
+                                            <div className="grid-2" style={{ gap: 28 }}>
+                                                <div>
+                                                    <div className="eyebrow" style={{ marginBottom: 14 }}>Recommendations</div>
+                                                    <ul className="ticks dots">{(report.recommendations || []).map((s: string, i: number) => <li key={i}>{s}</li>)}</ul>
+                                                </div>
+                                                <div>
+                                                    <div className="eyebrow" style={{ marginBottom: 14 }}>Good habits</div>
+                                                    <ul className="ticks dots">{(report.bestPractices || []).map((s: string, i: number) => <li key={i}>{s}</li>)}</ul>
+                                                </div>
+                                            </div>
+                                        </section>
+                                    )}
+
+                                    <div className="row wrap" style={{ paddingBottom: 12 }}>
+                                        <Link href="/upload" className="btn btn-primary btn-lg"><Upload size={17} /> Analyse another clip</Link>
+                                        <Link href="/progress" className="btn btn-secondary btn-lg">See your progress</Link>
                                     </div>
                                 </div>
-
-                                <div className="btn-group-mobile" style={{ display: 'flex', gap: 16, paddingBottom: 60, flexWrap: 'wrap' }}>
-                                    <Link href="/upload" className="btn btn-primary btn-lg">
-                                        Analyze Another Video
-                                    </Link>
-                                    <Link href="/progress" className="btn btn-secondary btn-lg">
-                                        View Improvement Roadmap
-                                    </Link>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Processing or failed state */}
-                        {(upload && (!isCompleted || !report) && upload?.status !== 'failed') && (
-                            <div className="animate-fadeIn" style={{ textAlign: 'center', padding: '100px 0' }}>
-                                <div style={{ fontSize: 80, marginBottom: 24, animation: 'float 4s ease-in-out infinite' }}>🤖</div>
-                                <h2 style={{ fontSize: 28, fontWeight: 900, marginBottom: 16, letterSpacing: '-0.02em' }}>AI Engine is Processing Your {type}</h2>
-                                <p style={{ color: 'var(--text-secondary)', marginBottom: 12, fontSize: 17, maxWidth: 600, margin: '0 auto 12px', lineHeight: 1.7 }}>
-                                    {upload?.status === 'completed' ? 'Finalizing report generation and synchronizing with your athlete profile...' : 'MediaPipe is performing frame-by-frame biomechanical extraction...'}
-                                </p>
-                                <div style={{ color: 'var(--accent-green-bright)', fontSize: 14, fontWeight: 600 }}>
-                                    Auto-refreshing in 4s...
-                                </div>
-                            </div>
-                        )}
-                    </>
-                )}
+                            )}
+                        </>
+                    )}
+                </div>
             </main>
         </div>
     );
