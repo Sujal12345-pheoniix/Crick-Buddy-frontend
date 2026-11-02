@@ -2,20 +2,39 @@
 
 import { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
 import Sidebar from '@/components/Sidebar';
+import { PageHeader } from '@/components/ui';
 import { uploadsAPI } from '@/lib/api';
-import { Upload, CheckCircle, X, Loader, ArrowRight } from 'lucide-react';
+import { Upload, X, Film, Target, PersonStanding, Camera, Ruler, Sun } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const UPLOAD_TYPES = [
-    { value: 'batting', label: 'Batting Video',  emoji: '🏏', desc: 'MP4, MOV · one shot, under 30 s · Max 500 MB', accept: 'video/*', color: '#22c55e', points: ['Front-foot timing into the swing', 'Head stability into contact', 'Balance at contact', 'Stride length', 'Follow-through', 'Set-up stance & shot family'] },
-    { value: 'bowling', label: 'Bowling Video',  emoji: '⚡', desc: 'MP4, MOV · one delivery, under 30 s · Max 500 MB', accept: 'video/*', color: '#6366f1', points: ['Release height & arm extension', 'Arm-rotation smoothness', 'Wrist position at release', 'Balance at release', 'Ball speed (when the ball is visible side-on)', 'Bowling arm detection'] },
-    { value: 'posture', label: 'Posture Image',  emoji: '📸', desc: 'JPG, PNG, WebP or a short video', accept: 'image/*,video/*', color: '#f97316', points: ['Shoulder alignment', 'Knee bend angle', 'Balance assessment', 'Spine position', 'Athletic posture score'] },
+    {
+        value: 'batting', label: 'Batting', icon: Target, accept: 'video/*',
+        desc: 'One shot, side-on, under 30 seconds',
+        points: ['Front-foot timing into the swing', 'Head stability in the downswing', 'Balance at contact', 'Stride length', 'Follow-through', 'Set-up stance and shot family'],
+    },
+    {
+        value: 'bowling', label: 'Bowling', icon: Film, accept: 'video/*',
+        desc: 'One delivery, side-on, under 30 seconds',
+        points: ['Release height and arm extension', 'Smoothness of the arm through the arc', 'Wrist position at release', 'Balance over the front foot', 'Ball speed, when the ball is tracked', 'Bowling arm detection'],
+    },
+    {
+        value: 'posture', label: 'Posture', icon: PersonStanding, accept: 'image/*,video/*',
+        desc: 'A photo or short clip of your ready position',
+        points: ['Shoulder alignment', 'Knee bend', 'Hip balance', 'Spine position'],
+    },
 ];
 
+const TIPS = [
+    { icon: Camera, title: 'Side-on, hip height', text: 'Square of the pitch, phone held steady. Front-on footage hides footwork.' },
+    { icon: Ruler, title: 'Whole body in frame', text: 'Head to feet, with a little space above the bat or bowling arm.' },
+    { icon: Sun, title: 'Good light, one action', text: 'Daylight or bright nets. Trim to the single shot or delivery.' },
+];
+
+const formatSize = (bytes: number) => bytes < 1024 * 1024 ? `${(bytes / 1024).toFixed(0)} KB` : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+
 export default function UploadPage() {
-    const { user } = useAuth();
     const router = useRouter();
     const fileRef = useRef<HTMLInputElement>(null);
     const [selectedType, setSelectedType] = useState('batting');
@@ -23,7 +42,6 @@ export default function UploadPage() {
     const [notes, setNotes] = useState('');
     const [dragOver, setDragOver] = useState(false);
     const [uploading, setUploading] = useState(false);
-    const [uploadedId, setUploadedId] = useState<string | null>(null);
     const [progress, setProgress] = useState(0);
 
     const handleDrop = useCallback((e: React.DragEvent) => {
@@ -37,12 +55,8 @@ export default function UploadPage() {
         if (e.target.files?.[0]) setFile(e.target.files[0]);
     };
 
-    const formatSize = (bytes: number) => bytes < 1024 * 1024
-        ? `${(bytes / 1024).toFixed(0)} KB`
-        : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-
     const handleUpload = async () => {
-        if (!file) return toast.error('Please select a file first');
+        if (!file) return toast.error('Choose a clip first');
         setUploading(true);
         setProgress(0);
         // Text fields first: the server reads `type` while the file is still streaming in.
@@ -53,165 +67,122 @@ export default function UploadPage() {
         try {
             const res = await uploadsAPI.upload(fd, setProgress);
             setProgress(100);
-            setUploadedId(res.data.upload.id);
-            toast.success('Upload successful! AI analysis started 🤖');
+            toast.success('Uploaded — analysis has started');
+            router.push(`/analysis/${res.data.upload.id}`);
         } catch (err: any) {
             toast.error(err.response?.data?.message || 'Upload failed');
             setProgress(0);
-        } finally { setUploading(false); }
+            setUploading(false);
+        }
     };
 
     const typeData = UPLOAD_TYPES.find(t => t.value === selectedType)!;
 
     return (
-        <div style={{ display: 'flex' }}>
+        <div className="app">
             <Sidebar />
-            <main className="main-content" style={{ padding: 'clamp(16px,3vw,32px) clamp(16px,3vw,40px)', width: '100%' }}>
-                <div style={{ marginBottom: 28 }}>
-                    <h1 style={{ fontSize: 'clamp(20px,3.5vw,28px)', fontWeight: 800, marginBottom: 6, letterSpacing: '-0.01em' }}>
-                        Upload & Analyze 📹
-                    </h1>
-                    <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>Upload your cricket video or posture image for AI-powered analysis</p>
-                </div>
+            <main className="main-content">
+                <div className="page">
+                    <PageHeader
+                        eyebrow="New analysis"
+                        title="Analyse a clip"
+                        description="Upload one shot or one delivery. We track 33 points on your body frame by frame and measure the moments that decide the outcome."
+                    />
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(320px, 100%), 1fr))', gap: 24, maxWidth: 1040 }}>
-                    {/* LEFT: Type selection + analysis info */}
-                    <div>
-                        <h2 style={{ fontSize: 15, fontWeight: 700, marginBottom: 14, color: 'var(--text-secondary)' }}>Choose Analysis Type</h2>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
-                            {UPLOAD_TYPES.map(t => (
-                                <button key={t.value}
-                                    onClick={() => { setSelectedType(t.value); setFile(null); }}
-                                    style={{
-                                        background: selectedType === t.value ? `${t.color}10` : 'rgba(255,255,255,0.03)',
-                                        border: `1.5px solid ${selectedType === t.value ? t.color : 'var(--border)'}`,
-                                        borderRadius: 12, padding: '14px 18px', cursor: 'pointer',
-                                        textAlign: 'left', transition: 'all 0.2s',
-                                        display: 'flex', alignItems: 'center', gap: 14, width: '100%', fontFamily: 'inherit',
-                                    }}>
-                                    <span style={{ fontSize: 26 }}>{t.emoji}</span>
-                                    <div style={{ flex: 1 }}>
-                                        <div style={{ fontSize: 14, fontWeight: 700, color: selectedType === t.value ? t.color : 'var(--text-primary)', marginBottom: 2 }}>{t.label}</div>
-                                        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t.desc}</div>
-                                    </div>
-                                    {selectedType === t.value && <CheckCircle size={16} color={t.color} style={{ flexShrink: 0 }} />}
-                                </button>
-                            ))}
-                        </div>
+                    <div className="split rise rise-1">
+                        <section className="stack">
+                            <div>
+                                <div className="label" style={{ marginBottom: 10 }}>1 · What are we looking at?</div>
+                                <div className="grid-3" style={{ gap: 10 }} role="radiogroup" aria-label="Analysis type">
+                                    {UPLOAD_TYPES.map(t => (
+                                        <button key={t.value} type="button" role="radio" aria-checked={selectedType === t.value}
+                                            className={`choice ${selectedType === t.value ? 'on' : ''}`}
+                                            onClick={() => { setSelectedType(t.value); setFile(null); }}
+                                            style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 12 }}>
+                                            <span className="choice-icon"><t.icon size={20} /></span>
+                                            <span>
+                                                <span style={{ display: 'block', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 20, textTransform: 'uppercase', letterSpacing: '0.02em' }}>{t.label}</span>
+                                                <span className="muted small">{t.desc}</span>
+                                            </span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
 
-                        {/* What will be analyzed */}
-                        <div className="card" style={{ padding: 18 }}>
-                            <h3 style={{ fontSize: 13, fontWeight: 700, marginBottom: 12, color: typeData.color, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                What AI Analyzes
-                            </h3>
-                            <ul style={{ listStyle: 'none' }}>
-                                {typeData.points.map((item, i) => (
-                                    <li key={i} style={{ display: 'flex', gap: 10, marginBottom: 9, fontSize: 13, color: 'var(--text-secondary)', alignItems: 'flex-start' }}>
-                                        <span style={{ color: typeData.color, marginTop: 1, flexShrink: 0 }}>→</span>
-                                        {item}
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    </div>
-
-                    {/* RIGHT: Upload zone */}
-                    <div>
-                        <h2 style={{ fontSize: 15, fontWeight: 700, marginBottom: 14, color: 'var(--text-secondary)' }}>Upload File</h2>
-
-                        {!uploadedId ? (
-                            <>
-                                {/* Drop zone */}
+                            <div>
+                                <div className="label" style={{ marginBottom: 10 }}>2 · Your clip</div>
                                 <div
-                                    className={`upload-zone ${dragOver ? 'drag-over' : ''}`}
-                                    style={{ marginBottom: 16 }}
+                                    className={`upload-zone pitch-stripes ${dragOver ? 'drag-over' : ''}`}
                                     onDragOver={e => { e.preventDefault(); setDragOver(true); }}
                                     onDragLeave={() => setDragOver(false)}
                                     onDrop={handleDrop}
-                                    onClick={() => !file && fileRef.current?.click()}
+                                    onClick={() => !file && !uploading && fileRef.current?.click()}
+                                    role="button" tabIndex={0} aria-label="Choose a file to upload"
+                                    onKeyDown={e => { if ((e.key === 'Enter' || e.key === ' ') && !file) fileRef.current?.click(); }}
                                 >
-                                    <input ref={fileRef} type="file" accept={typeData.accept} style={{ display: 'none' }} onChange={handleFileChange} />
-
+                                    <input ref={fileRef} type="file" accept={typeData.accept} hidden onChange={handleFileChange} />
                                     {file ? (
-                                        <div style={{ animation: 'bounce-in 0.3s ease' }}>
-                                            <div style={{ fontSize: 44, marginBottom: 12 }}>{selectedType === 'posture' ? '🖼️' : '🎬'}</div>
-                                            <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4, color: typeData.color, wordBreak: 'break-all' }}>{file.name}</div>
-                                            <div style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 16 }}>{formatSize(file.size)}</div>
-                                            <button
-                                                onClick={e => { e.stopPropagation(); setFile(null); }}
-                                                className="btn btn-danger btn-sm">
-                                                <X size={13} /> Remove
-                                            </button>
+                                        <div className="stack" style={{ alignItems: 'center', gap: 12, width: '100%', maxWidth: 420 }}>
+                                            <span className="choice-icon" style={{ background: 'var(--white)', color: 'var(--navy-950)' }}><Film size={20} /></span>
+                                            <div>
+                                                <div style={{ fontWeight: 600, wordBreak: 'break-all' }}>{file.name}</div>
+                                                <div className="muted small">{formatSize(file.size)}</div>
+                                            </div>
+                                            {uploading ? (
+                                                <div style={{ width: '100%' }}>
+                                                    <div className="row-between small" style={{ marginBottom: 8 }}>
+                                                        <span className="muted">{progress < 100 ? 'Uploading' : 'Starting analysis'}</span>
+                                                        <span className="tnum" style={{ fontWeight: 600 }}>{progress}%</span>
+                                                    </div>
+                                                    <div className="progress-bar"><div className="progress-fill" style={{ width: `${progress}%` }} /></div>
+                                                </div>
+                                            ) : (
+                                                <button type="button" className="btn btn-ghost btn-sm" onClick={e => { e.stopPropagation(); setFile(null); }}>
+                                                    <X size={14} /> Choose a different file
+                                                </button>
+                                            )}
                                         </div>
                                     ) : (
-                                        <div>
-                                            <div style={{ fontSize: 48, marginBottom: 14 }}>{selectedType === 'posture' ? '📸' : '🎬'}</div>
-                                            <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>Drop your file here</div>
-                                            <div style={{ color: 'var(--text-muted)', fontSize: 14, marginBottom: 16 }}>or tap to browse your device</div>
-                                            <span style={{ display: 'inline-block', background: `${typeData.color}14`, border: `1px solid ${typeData.color}30`, borderRadius: 20, padding: '5px 14px', color: typeData.color, fontSize: 12, fontWeight: 600 }}>
-                                                {typeData.desc}
-                                            </span>
+                                        <div className="stack" style={{ alignItems: 'center', gap: 10 }}>
+                                            <span className="choice-icon"><Upload size={20} /></span>
+                                            <div style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 700, textTransform: 'uppercase' }}>Drop your {typeData.label.toLowerCase()} clip</div>
+                                            <div className="muted small">or click to browse · MP4, MOV, WebM up to 500 MB</div>
                                         </div>
                                     )}
                                 </div>
+                            </div>
 
-                                {/* Notes */}
-                                <div style={{ marginBottom: 18 }}>
-                                    <label className="input-label">Notes (optional)</label>
-                                    <textarea className="input" rows={3}
-                                        placeholder="E.g. Practice session, specific issue to focus on..."
-                                        value={notes} onChange={e => setNotes(e.target.value)}
-                                        style={{ resize: 'vertical', minHeight: 80 }} />
-                                </div>
+                            <div className="field">
+                                <label className="input-label" htmlFor="notes">3 · Notes (optional)</label>
+                                <textarea id="notes" className="input" rows={3} value={notes} onChange={e => setNotes(e.target.value)}
+                                    placeholder="e.g. Nets session, working on getting forward to full balls" style={{ resize: 'vertical' }} />
+                            </div>
 
-                                {/* Progress */}
-                                {uploading && (
-                                    <div style={{ marginBottom: 16 }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                                            <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{progress < 100 ? '⬆️ Uploading...' : '⚙️ Starting analysis...'}</span>
-                                            <span style={{ fontSize: 13, color: typeData.color, fontWeight: 700 }}>{progress}%</span>
+                            <button className="btn btn-primary btn-xl btn-full" onClick={handleUpload} disabled={uploading || !file}>
+                                {uploading ? <><span className="spinner" style={{ width: 18, height: 18, borderTopColor: 'var(--navy-950)' }} /> Uploading…</> : <><Upload size={18} /> Start analysis</>}
+                            </button>
+                        </section>
+
+                        <aside className="stack">
+                            <div className="card card-pad">
+                                <div className="eyebrow" style={{ marginBottom: 14 }}>What we measure</div>
+                                <ul className="ticks">{typeData.points.map(p => <li key={p}>{p}</li>)}</ul>
+                            </div>
+                            <div className="panel-black card-pad">
+                                <div className="eyebrow" style={{ marginBottom: 16 }}>Film it right</div>
+                                <div className="stack" style={{ gap: 18 }}>
+                                    {TIPS.map(({ icon: Icon, title, text }) => (
+                                        <div key={title} className="row" style={{ alignItems: 'flex-start', gap: 14 }}>
+                                            <span className="choice-icon" style={{ width: 36, height: 36 }}><Icon size={17} /></span>
+                                            <div>
+                                                <div style={{ fontWeight: 600, fontSize: 14 }}>{title}</div>
+                                                <div className="muted small">{text}</div>
+                                            </div>
                                         </div>
-                                        <div className="progress-bar" style={{ height: 8 }}>
-                                            <div className="progress-fill" style={{ width: `${progress}%`, transition: 'width 0.4s ease', background: `linear-gradient(90deg, ${typeData.color}, ${typeData.color}cc)` }} />
-                                        </div>
-                                        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>Keep this page open until the upload finishes.</div>
-                                    </div>
-                                )}
-
-                                <button className="btn btn-primary btn-full btn-lg" style={{ justifyContent: 'center' }}
-                                    onClick={handleUpload} disabled={uploading || !file}>
-                                    {uploading
-                                        ? <><Loader size={16} className="animate-spin" /> Uploading...</>
-                                        : <><Upload size={16} /> Start AI Analysis</>}
-                                </button>
-
-                                {!file && (
-                                    <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-muted)', marginTop: 12 }}>
-                                        Tip: film side-on at hip height with the whole body in frame. Analysis takes about 15–60 seconds.
-                                    </p>
-                                )}
-                            </>
-                        ) : (
-                            /* Success */
-                            <div className="card" style={{ padding: 40, textAlign: 'center', border: '1px solid rgba(34,197,94,0.25)' }}>
-                                <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'rgba(34,197,94,0.1)', border: '2px solid rgba(34,197,94,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', fontSize: 36, animation: 'bounce-in 0.4s ease' }}>
-                                    ✅
-                                </div>
-                                <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 10 }}>Analysis Started!</h3>
-                                <p style={{ color: 'var(--text-muted)', marginBottom: 28, fontSize: 14, lineHeight: 1.7 }}>
-                                    Your AI analysis is running. Results are usually ready in 15–60 seconds.
-                                </p>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                                    <button className="btn btn-primary btn-full btn-lg" style={{ justifyContent: 'center' }}
-                                        onClick={() => router.push(`/analysis/${uploadedId}`)}>
-                                        View Analysis Status <ArrowRight size={16} />
-                                    </button>
-                                    <button className="btn btn-ghost btn-full" onClick={() => { setFile(null); setUploadedId(null); setProgress(0); }}>
-                                        Upload Another Video
-                                    </button>
+                                    ))}
                                 </div>
                             </div>
-                        )}
+                        </aside>
                     </div>
                 </div>
             </main>
