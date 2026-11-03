@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import { PageHeader } from '@/components/ui';
-import { uploadsAPI } from '@/lib/api';
+import { uploadsAPI, wakeAiService } from '@/lib/api';
 import { Upload, X, Film, Target, PersonStanding, Camera, Ruler, Sun } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -43,6 +43,9 @@ export default function UploadPage() {
     const [dragOver, setDragOver] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [progress, setProgress] = useState(0);
+
+    // Start the AI service booting while the user picks a clip.
+    useEffect(() => { wakeAiService(); }, []);
 
     const handleDrop = useCallback((e: React.DragEvent) => {
         e.preventDefault();

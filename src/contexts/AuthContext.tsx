@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { authAPI } from '@/lib/api';
+import { authAPI, wakeAiService } from '@/lib/api';
 
 interface User {
     id: string;
@@ -37,6 +37,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        wakeAiService();
         const storedToken = localStorage.getItem('crick_token');
         const storedUser = localStorage.getItem('crick_user');
         if (storedToken && storedUser) {
