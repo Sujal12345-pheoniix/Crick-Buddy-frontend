@@ -4,6 +4,22 @@ import axios from 'axios';
 // Falls back to the local backend when no environment variable is provided.
 export const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api').replace(/\/$/, '');
 
+// The AI service sleeps on Render's free tier, and requests from the backend alone don't
+// reliably wake it — a request from the user's browser does. Ping it as soon as the app
+// opens so it is booted by the time a video is uploaded.
+const AI_SERVICE_URL = (
+    process.env.NEXT_PUBLIC_AI_SERVICE_URL ||
+    (process.env.NODE_ENV === 'production' ? 'https://crick-buddy-ai-service.onrender.com' : '')
+).replace(/\/$/, '');
+
+let lastAiWake = 0;
+export function wakeAiService() {
+    if (!AI_SERVICE_URL || typeof window === 'undefined' || Date.now() - lastAiWake < 60000) return;
+    lastAiWake = Date.now();
+    // no-cors: we only need the request to reach Render, not to read the answer.
+    fetch(`${AI_SERVICE_URL}/health`, { mode: 'no-cors', cache: 'no-store' }).catch(() => {});
+}
+
 const api = axios.create({
     baseURL: API_BASE,
     headers: { 'Content-Type': 'application/json' },
